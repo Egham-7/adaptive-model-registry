@@ -21,7 +21,7 @@ func errorResponse(c *fiber.Ctx, status int, message string) error {
 	})
 }
 
-func successResponse(c *fiber.Ctx, status int, payload interface{}) error {
+func successResponse(c *fiber.Ctx, status int, payload any) error {
 	if payload == nil {
 		return c.SendStatus(status)
 	}
