@@ -44,11 +44,12 @@ func MustLoad() Config {
 }
 
 // ListenAddr returns the Fiber listen address derived from the configured port.
+// Binds to 0.0.0.0 for IPv4/IPv6 compatibility with Railway's private network.
 func (c Config) ListenAddr() string {
 	if strings.HasPrefix(c.Port, ":") {
-		return c.Port
+		return "0.0.0.0" + c.Port
 	}
-	return ":" + c.Port
+	return "0.0.0.0:" + c.Port
 }
 
 func getEnvDefault(key, fallback string) string {
