@@ -21,11 +21,18 @@ type Server struct {
 // New constructs a Server instance with routes registered.
 func New(cfg config.Config, db *gorm.DB, repo repository.ModelRepository) (*Server, error) {
 	app := fiber.New(fiber.Config{
-		Immutable:     true,
-		CaseSensitive: true,
-		StrictRouting: true,
-		ReadTimeout:   cfg.ReadTimeout,
-		WriteTimeout:  cfg.WriteTimeout,
+		Immutable:            true,
+		CaseSensitive:        true,
+		StrictRouting:        true,
+		AppName:              "AdaptiveProxy v1.0",
+		ReadBufferSize:       8192,
+		WriteBufferSize:      8192,
+		CompressedFileSuffix: ".gz",
+		Prefork:              false,
+		Network:              "tcp",
+		ServerHeader:         "AdaptiveProxy",
+		ReadTimeout:          cfg.ReadTimeout,
+		WriteTimeout:         cfg.WriteTimeout,
 	})
 
 	modelService := services.NewModelService(repo)
