@@ -27,5 +27,5 @@ type Model struct {
 
 // TableName ensures GORM uses the expected table name.
 func (Model) TableName() string {
-	return "models"
+	return "llm_models"
 }
