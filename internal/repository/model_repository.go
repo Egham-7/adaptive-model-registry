@@ -37,7 +37,17 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 		query = query.Where("provider = ?", filter.Provider)
 	}
 	if filter.ModelName != "" {
-		query = query.Where("model_name = ?", filter.ModelName)
+		// Try exact match first
+		exactQuery := query.Where("model_name = ?", filter.ModelName)
+		if err := exactQuery.Find(&items).Error; err != nil {
+			return nil, err
+		}
+		// If no exact matches found, fall back to regex match
+		if len(items) == 0 {
+			query = query.Where("model_name ~ ?", filter.ModelName)
+		} else {
+			query = exactQuery
+		}
 	}
 	if filter.OpenrouterID != "" {
 		query = query.Where("openrouter_id = ?", filter.OpenrouterID)
@@ -51,9 +61,17 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 func (r *modelRepository) GetByName(ctx context.Context, name string) (*models.Model, error) {
 	var m models.Model
+	// Try exact match first
 	if err := r.db.WithContext(ctx).Where("model_name = ?", name).First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			// Fall back to regex match using PostgreSQL ~ operator
+			if err := r.db.WithContext(ctx).Where("model_name ~ ?", name).First(&m).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, ErrNotFound
+				}
+				return nil, err
+			}
+			return &m, nil
 		}
 		return nil, err
 	}
