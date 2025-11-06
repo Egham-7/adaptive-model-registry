@@ -22,15 +22,9 @@ func (s *ModelService) List(ctx context.Context, filter models.ModelFilter) ([]m
 	return s.repo.List(ctx, filter)
 }
 
-// GetByName returns the first model record matching the name.
-// Note: model names may exist across providers; this returns the first match.
-func (s *ModelService) GetByName(ctx context.Context, name string) (*models.Model, error) {
-	return s.repo.GetByName(ctx, name)
-}
-
-// GetByOpenrouterID retrieves a model by its OpenRouter identifier.
-func (s *ModelService) GetByOpenrouterID(ctx context.Context, openrouterID string) (*models.Model, error) {
-	return s.repo.GetByOpenrouterID(ctx, openrouterID)
+// GetByProviderAndName retrieves a model by its provider and model name.
+func (s *ModelService) GetByProviderAndName(ctx context.Context, provider, name string) (*models.Model, error) {
+	return s.repo.GetByProviderAndName(ctx, provider, name)
 }
 
 // Upsert creates or updates a model entry.

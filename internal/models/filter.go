@@ -2,7 +2,6 @@ package models
 
 // ModelFilter defines optional filtering criteria when listing models.
 type ModelFilter struct {
-	Provider     string `json:"provider,omitzero"`
-	ModelName    string `json:"model_name,omitzero"`
-	OpenrouterID string `json:"openrouter_id,omitzero"`
+	Provider  string `json:"provider,omitzero"`
+	ModelName string `json:"model_name,omitzero"`
 }

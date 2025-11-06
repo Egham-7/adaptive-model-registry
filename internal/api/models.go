@@ -27,9 +27,8 @@ func (h *ModelHandler) List(c *fiber.Ctx) error {
 	ctx := requestContext(c)
 
 	filter := models.ModelFilter{
-		Provider:     c.Query("provider"),
-		ModelName:    c.Query("model_name"),
-		OpenrouterID: c.Query("openrouter_id"),
+		Provider:  c.Query("provider"),
+		ModelName: c.Query("model_name"),
 	}
 
 	items, err := h.service.List(ctx, filter)
@@ -40,34 +39,16 @@ func (h *ModelHandler) List(c *fiber.Ctx) error {
 	return successResponse(c, http.StatusOK, items)
 }
 
-// GetByName fetches the first model matching the supplied name.
-func (h *ModelHandler) GetByName(c *fiber.Ctx) error {
+// GetByProviderAndName fetches a model by provider and model name.
+func (h *ModelHandler) GetByProviderAndName(c *fiber.Ctx) error {
+	provider := c.Params("provider")
 	name := c.Params("name")
-	if name == "" {
-		return errorResponse(c, http.StatusBadRequest, "model name is required")
+	if provider == "" || name == "" {
+		return errorResponse(c, http.StatusBadRequest, "provider and model name are required")
 	}
 
 	ctx := requestContext(c)
-	item, err := h.service.GetByName(ctx, name)
-	switch {
-	case err == nil:
-		return successResponse(c, http.StatusOK, item)
-	case errors.Is(err, repository.ErrNotFound):
-		return errorResponse(c, http.StatusNotFound, "model not found")
-	default:
-		return errorResponse(c, http.StatusInternalServerError, err.Error())
-	}
-}
-
-// GetByOpenrouterID fetches a model by OpenRouter ID.
-func (h *ModelHandler) GetByOpenrouterID(c *fiber.Ctx) error {
-	openrouterID := c.Params("id")
-	if openrouterID == "" {
-		return errorResponse(c, http.StatusBadRequest, "openrouter id is required")
-	}
-
-	ctx := requestContext(c)
-	item, err := h.service.GetByOpenrouterID(ctx, openrouterID)
+	item, err := h.service.GetByProviderAndName(ctx, provider, name)
 	switch {
 	case err == nil:
 		return successResponse(c, http.StatusOK, item)
@@ -103,6 +84,9 @@ func (h *ModelHandler) Upsert(c *fiber.Ctx) error {
 }
 
 func validateModel(m models.Model) error {
+	if m.Provider == "" {
+		return errors.New("provider is required")
+	}
 	if m.ModelName == "" {
 		return errors.New("model_name is required")
 	}
