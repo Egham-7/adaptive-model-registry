@@ -9,6 +9,7 @@ import (
 
 	"github.com/adaptive/adaptive-model-registry/internal/config"
 	"github.com/adaptive/adaptive-model-registry/internal/database"
+	"github.com/adaptive/adaptive-model-registry/internal/models"
 	"github.com/adaptive/adaptive-model-registry/internal/repository"
 	"github.com/adaptive/adaptive-model-registry/internal/server"
 )
@@ -22,6 +23,21 @@ func main() {
 			log.Printf("close database: %v", err)
 		}
 	}()
+
+	// Auto-migrate database schema and create indices
+	if err := db.AutoMigrate(
+		&models.Model{},
+		&models.ModelPricing{},
+		&models.ModelArchitecture{},
+		&models.ModelArchitectureModality{},
+		&models.ModelTopProvider{},
+		&models.ModelEndpoint{},
+		&models.ModelEndpointPricing{},
+		&models.ModelSupportedParameter{},
+		&models.ModelDefaultParameters{},
+	); err != nil {
+		log.Fatalf("auto-migrate database: %v", err)
+	}
 
 	repo := repository.NewModelRepository(db)
 

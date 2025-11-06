@@ -99,12 +99,12 @@ class ModelPricing(Base):
     )
 
     # Pricing in USD per token (using NUMERIC for precision)
-    prompt_cost = Column(String(20), nullable=False)  # Keep as string for precision
-    completion_cost = Column(String(20), nullable=False)
-    request_cost = Column(String(20), nullable=False, default="0")
-    image_cost = Column(String(20), nullable=False, default="0")
-    web_search_cost = Column(String(20), nullable=False, default="0")
-    internal_reasoning_cost = Column(String(20), nullable=False, default="0")
+    prompt_cost = Column(String(50), nullable=False)  # Keep as string for precision
+    completion_cost = Column(String(50), nullable=False)
+    request_cost = Column(String(50), nullable=False, default="0")
+    image_cost = Column(String(50), nullable=False, default="0")
+    web_search_cost = Column(String(50), nullable=False, default="0")
+    internal_reasoning_cost = Column(String(50), nullable=False, default="0")
 
 
 class ModelArchitecture(Base):
@@ -170,7 +170,7 @@ class ModelEndpoint(Base):
 
     __tablename__ = "model_endpoints"
     __table_args__ = (
-        UniqueConstraint("model_id", "name", "provider_name", name="uq_model_endpoint"),
+        UniqueConstraint("model_id", "name", "provider_name", "tag", name="uq_model_endpoint"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -189,7 +189,7 @@ class ModelEndpoint(Base):
     max_completion_tokens = Column(Integer)
     max_prompt_tokens = Column(Integer)
     status = Column(Integer, nullable=False)
-    uptime_last_30m = Column(String(10))
+    uptime_last_30m = Column(String(50))
     supports_implicit_caching = Column(String(10), nullable=False, default="false")
 
 
@@ -206,10 +206,10 @@ class ModelEndpointPricing(Base):
         index=True,
     )
 
-    prompt_cost = Column(String(20), nullable=False, default="0")
-    completion_cost = Column(String(20), nullable=False, default="0")
-    request_cost = Column(String(20), nullable=False, default="0")
-    image_cost = Column(String(20), nullable=False, default="0")
+    prompt_cost = Column(String(50), nullable=False, default="0")
+    completion_cost = Column(String(50), nullable=False, default="0")
+    request_cost = Column(String(50), nullable=False, default="0")
+    image_cost = Column(String(50), nullable=False, default="0")
 
 
 class ModelSupportedParameter(Base):
@@ -712,32 +712,46 @@ async def bulk_insert_models(
 
             # 8. Insert endpoints
             for ep in m.endpoints:
-                endpoint = ModelEndpoint(
-                    model_id=model_id,
-                    name=ep.name,
-                    endpoint_model_name=ep.model_name,
-                    context_length=ep.context_length,
-                    provider_name=ep.provider_name,
-                    tag=ep.tag,
-                    quantization=ep.quantization,
-                    max_completion_tokens=ep.max_completion_tokens,
-                    max_prompt_tokens=ep.max_prompt_tokens,
-                    status=ep.status,
-                    uptime_last_30m=str(ep.uptime_last_30m) if ep.uptime_last_30m else None,
-                    supports_implicit_caching=str(ep.supports_implicit_caching).lower(),
+                # Check if endpoint already exists (handle OpenRouter API duplicates)
+                existing_endpoint = await session.execute(
+                    select(ModelEndpoint).where(
+                        ModelEndpoint.model_id == model_id,
+                        ModelEndpoint.name == ep.name,
+                        ModelEndpoint.provider_name == ep.provider_name,
+                        ModelEndpoint.tag == ep.tag,
+                    )
                 )
-                session.add(endpoint)
-                await session.flush()  # Get endpoint ID
+                existing_endpoint = existing_endpoint.scalar_one_or_none()
 
-                # 9. Insert endpoint pricing
-                endpoint_pricing = ModelEndpointPricing(
-                    endpoint_id=endpoint.id,
-                    prompt_cost=ep.pricing.get("prompt", "0"),
-                    completion_cost=ep.pricing.get("completion", "0"),
-                    request_cost=ep.pricing.get("request", "0"),
-                    image_cost=ep.pricing.get("image", "0"),
-                )
-                session.add(endpoint_pricing)
+                if existing_endpoint:
+                    endpoint = existing_endpoint
+                else:
+                    endpoint = ModelEndpoint(
+                        model_id=model_id,
+                        name=ep.name,
+                        endpoint_model_name=ep.model_name,
+                        context_length=ep.context_length,
+                        provider_name=ep.provider_name,
+                        tag=ep.tag,
+                        quantization=ep.quantization,
+                        max_completion_tokens=ep.max_completion_tokens,
+                        max_prompt_tokens=ep.max_prompt_tokens,
+                        status=ep.status,
+                        uptime_last_30m=str(ep.uptime_last_30m) if ep.uptime_last_30m else None,
+                        supports_implicit_caching=str(ep.supports_implicit_caching).lower(),
+                    )
+                    session.add(endpoint)
+                    await session.flush()  # Get endpoint ID
+
+                    # 9. Insert endpoint pricing (only for new endpoints)
+                    endpoint_pricing = ModelEndpointPricing(
+                        endpoint_id=endpoint.id,
+                        prompt_cost=ep.pricing.get("prompt", "0"),
+                        completion_cost=ep.pricing.get("completion", "0"),
+                        request_cost=ep.pricing.get("request", "0"),
+                        image_cost=ep.pricing.get("image", "0"),
+                    )
+                    session.add(endpoint_pricing)
 
             inserted_count += 1
 
