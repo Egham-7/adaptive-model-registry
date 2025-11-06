@@ -23,7 +23,6 @@ func Register(app *fiber.App, deps Deps) {
 	app.Get("/", Root)
 	app.Get("/healthz", health.Check)
 	app.Get("/models", models.List)
-	app.Get("/models/:name", models.GetByName)
-	app.Get("/models/openrouter/:id", models.GetByOpenrouterID)
+	app.Get("/models/:provider/:name", models.GetByProviderAndName)
 	app.Post("/models", models.Upsert)
 }

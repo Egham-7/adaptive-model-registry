@@ -51,38 +51,199 @@ class Base(DeclarativeBase):
     pass
 
 
-# SQLAlchemy Model
+# ============================================================================
+# NORMALIZED SQLALCHEMY MODELS
+# ============================================================================
+
+
 class LLMModel(Base):
+    """Core model table with basic metadata"""
+
     __tablename__ = "llm_models"
-    __table_args__ = (UniqueConstraint("openrouter_id", name="uq_openrouter_id"),)
+    __table_args__ = (
+        UniqueConstraint("provider", "model_name", name="uq_provider_model"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # OpenRouter ID (e.g., "google/gemini-2.5-pro")
-    openrouter_id = Column(String(255), nullable=False, unique=True, index=True)
-
-    # Provider info (parsed from openrouter_id)
+    # Provider and model name form the composite unique identifier
     provider = Column(String(50), nullable=False, index=True)
-    model_name = Column(String(255), nullable=False)
+    model_name = Column(String(255), nullable=False, index=True)
 
-    # OpenRouter model data
+    # Basic metadata
     display_name = Column(String(255))
     description = Column(Text)
     context_length = Column(Integer)
-    pricing = Column(JSON)
-    architecture = Column(JSON)
-    top_provider = Column(JSON)
-    supported_parameters = Column(JSON)
-    default_parameters = Column(JSON)
 
-    # Endpoints data from OpenRouter
-    endpoints = Column(JSON)
-
-    # Metadata
-    created_at = Column(DateTime(timezone=True))
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), nullable=False)
     last_updated = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
+
+
+class ModelPricing(Base):
+    """Model pricing information (one-to-one with LLMModel)"""
+
+    __tablename__ = "model_pricing"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    # Pricing in USD per token (using NUMERIC for precision)
+    prompt_cost = Column(String(20), nullable=False)  # Keep as string for precision
+    completion_cost = Column(String(20), nullable=False)
+    request_cost = Column(String(20), nullable=False, default="0")
+    image_cost = Column(String(20), nullable=False, default="0")
+    web_search_cost = Column(String(20), nullable=False, default="0")
+    internal_reasoning_cost = Column(String(20), nullable=False, default="0")
+
+
+class ModelArchitecture(Base):
+    """Model architecture metadata (one-to-one with LLMModel)"""
+
+    __tablename__ = "model_architecture"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    modality = Column(String(50), nullable=False)
+    tokenizer = Column(String(100), nullable=False)
+    instruct_type = Column(String(50))
+
+
+class ModelArchitectureModality(Base):
+    """Input/output modalities for model architecture (many-to-one with ModelArchitecture)"""
+
+    __tablename__ = "model_architecture_modalities"
+    __table_args__ = (
+        UniqueConstraint(
+            "architecture_id", "modality_type", "modality_value", name="uq_arch_modality"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    architecture_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    # 'input' or 'output'
+    modality_type = Column(String(10), nullable=False)
+    modality_value = Column(String(50), nullable=False)
+
+
+class ModelTopProvider(Base):
+    """Top provider metadata (one-to-one with LLMModel)"""
+
+    __tablename__ = "model_top_provider"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    context_length = Column(Integer)
+    max_completion_tokens = Column(Integer)
+    is_moderated = Column(String(10), nullable=False, default="false")
+
+
+class ModelEndpoint(Base):
+    """Model endpoint information (one-to-many with LLMModel)"""
+
+    __tablename__ = "model_endpoints"
+    __table_args__ = (
+        UniqueConstraint("model_id", "name", "provider_name", name="uq_model_endpoint"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    name = Column(String(255), nullable=False)
+    endpoint_model_name = Column(String(255), nullable=False)
+    context_length = Column(Integer, nullable=False)
+    provider_name = Column(String(100), nullable=False, index=True)
+    tag = Column(String(100), nullable=False)
+    quantization = Column(String(50))
+    max_completion_tokens = Column(Integer)
+    max_prompt_tokens = Column(Integer)
+    status = Column(Integer, nullable=False)
+    uptime_last_30m = Column(String(10))
+    supports_implicit_caching = Column(String(10), nullable=False, default="false")
+
+
+class ModelEndpointPricing(Base):
+    """Endpoint-specific pricing (one-to-one with ModelEndpoint)"""
+
+    __tablename__ = "model_endpoint_pricing"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    endpoint_id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    prompt_cost = Column(String(20), nullable=False, default="0")
+    completion_cost = Column(String(20), nullable=False, default="0")
+    request_cost = Column(String(20), nullable=False, default="0")
+    image_cost = Column(String(20), nullable=False, default="0")
+
+
+class ModelSupportedParameter(Base):
+    """Supported parameters for model (many-to-many with LLMModel)"""
+
+    __tablename__ = "model_supported_parameters"
+    __table_args__ = (
+        UniqueConstraint("model_id", "parameter_name", name="uq_model_parameter"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    parameter_name = Column(String(100), nullable=False)
+
+
+class ModelDefaultParameters(Base):
+    """Default parameters for model (one-to-one with LLMModel, stored as JSON for flexibility)"""
+
+    __tablename__ = "model_default_parameters"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(
+        Integer,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    parameters = Column(JSON)
 
 
 # OpenRouter API base URL
@@ -442,57 +603,154 @@ async def fetch_all_endpoints_parallel(
     return [m for m in results if m is not None]
 
 
-async def get_existing_models_from_db(session: AsyncSession) -> set[str]:
-    """Get existing openrouter_ids from database"""
-    result = await session.execute(select(LLMModel.openrouter_id))
-    return {row[0] for row in result.all()}
+async def get_existing_models_from_db(session: AsyncSession) -> set[tuple[str, str]]:
+    """Get existing (provider, model_name) tuples from database"""
+    result = await session.execute(select(LLMModel.provider, LLMModel.model_name))
+    return {(row[0], row[1]) for row in result.all()}
 
 
 async def bulk_insert_models(
     session: AsyncSession, models: list[OpenRouterModelWithEndpoints]
 ) -> tuple[int, int]:
     """
-    Bulk insert models using SQLAlchemy ORM.
+    Bulk insert models using normalized schema with SQLAlchemy ORM.
     Only inserts new models, skips existing ones.
 
     Returns: (inserted_count, skipped_count)
     """
     # Get existing models
     existing = await get_existing_models_from_db(session)
-    new_models = [m for m in models if m.openrouter_id not in existing]
+    new_models = [m for m in models if (m.provider, m.model_name) not in existing]
     skipped = len(models) - len(new_models)
 
     if not new_models:
         logger.info("No new models to insert")
         return 0, skipped
 
-    # Convert Pydantic models to SQLAlchemy models
-    db_models = [
-        LLMModel(
-            openrouter_id=m.openrouter_id,
-            provider=m.provider,
-            model_name=m.model_name,
-            display_name=m.name,
-            description=m.description,
-            context_length=m.context_length,
-            pricing=m.pricing.model_dump(),
-            architecture=m.architecture.model_dump(),
-            top_provider=m.top_provider.model_dump(),
-            supported_parameters=m.supported_parameters,
-            default_parameters=m.default_parameters,
-            endpoints=[ep.model_dump() for ep in m.endpoints],
-            created_at=m.created_at,
-            last_updated=m.last_updated,
-        )
-        for m in new_models
-    ]
+    inserted_count = 0
 
-    # Bulk insert
-    session.add_all(db_models)
+    for m in new_models:
+        try:
+            # 1. Insert core model
+            db_model = LLMModel(
+                provider=m.provider,
+                model_name=m.model_name,
+                display_name=m.name,
+                description=m.description,
+                context_length=m.context_length,
+                created_at=m.created_at,
+                last_updated=m.last_updated,
+            )
+            session.add(db_model)
+            await session.flush()  # Get the ID
+
+            model_id = db_model.id
+
+            # 2. Insert pricing
+            pricing = ModelPricing(
+                model_id=model_id,
+                prompt_cost=m.pricing.prompt,
+                completion_cost=m.pricing.completion,
+                request_cost=m.pricing.request,
+                image_cost=m.pricing.image,
+                web_search_cost=m.pricing.web_search,
+                internal_reasoning_cost=m.pricing.internal_reasoning,
+            )
+            session.add(pricing)
+
+            # 3. Insert architecture
+            architecture = ModelArchitecture(
+                model_id=model_id,
+                modality=m.architecture.modality,
+                tokenizer=m.architecture.tokenizer,
+                instruct_type=m.architecture.instruct_type,
+            )
+            session.add(architecture)
+            await session.flush()  # Get architecture ID
+
+            architecture_id = architecture.id
+
+            # 4. Insert architecture modalities
+            for input_mod in m.architecture.input_modalities:
+                modality = ModelArchitectureModality(
+                    architecture_id=architecture_id,
+                    modality_type="input",
+                    modality_value=input_mod,
+                )
+                session.add(modality)
+
+            for output_mod in m.architecture.output_modalities:
+                modality = ModelArchitectureModality(
+                    architecture_id=architecture_id,
+                    modality_type="output",
+                    modality_value=output_mod,
+                )
+                session.add(modality)
+
+            # 5. Insert top provider
+            top_provider = ModelTopProvider(
+                model_id=model_id,
+                context_length=m.top_provider.context_length,
+                max_completion_tokens=m.top_provider.max_completion_tokens,
+                is_moderated=str(m.top_provider.is_moderated).lower(),
+            )
+            session.add(top_provider)
+
+            # 6. Insert supported parameters
+            for param in m.supported_parameters:
+                supported_param = ModelSupportedParameter(
+                    model_id=model_id, parameter_name=param
+                )
+                session.add(supported_param)
+
+            # 7. Insert default parameters (if any)
+            if m.default_parameters:
+                default_params = ModelDefaultParameters(
+                    model_id=model_id, parameters=m.default_parameters
+                )
+                session.add(default_params)
+
+            # 8. Insert endpoints
+            for ep in m.endpoints:
+                endpoint = ModelEndpoint(
+                    model_id=model_id,
+                    name=ep.name,
+                    endpoint_model_name=ep.model_name,
+                    context_length=ep.context_length,
+                    provider_name=ep.provider_name,
+                    tag=ep.tag,
+                    quantization=ep.quantization,
+                    max_completion_tokens=ep.max_completion_tokens,
+                    max_prompt_tokens=ep.max_prompt_tokens,
+                    status=ep.status,
+                    uptime_last_30m=str(ep.uptime_last_30m) if ep.uptime_last_30m else None,
+                    supports_implicit_caching=str(ep.supports_implicit_caching).lower(),
+                )
+                session.add(endpoint)
+                await session.flush()  # Get endpoint ID
+
+                # 9. Insert endpoint pricing
+                endpoint_pricing = ModelEndpointPricing(
+                    endpoint_id=endpoint.id,
+                    prompt_cost=ep.pricing.get("prompt", "0"),
+                    completion_cost=ep.pricing.get("completion", "0"),
+                    request_cost=ep.pricing.get("request", "0"),
+                    image_cost=ep.pricing.get("image", "0"),
+                )
+                session.add(endpoint_pricing)
+
+            inserted_count += 1
+
+        except Exception as e:
+            logger.error(f"Failed to insert model {m.openrouter_id}: {e}")
+            await session.rollback()
+            continue
+
+    # Commit all changes
     await session.commit()
 
-    logger.info(f"✓ Inserted {len(db_models)} new models")
-    return len(db_models), skipped
+    logger.info(f"✓ Inserted {inserted_count} new models")
+    return inserted_count, skipped
 
 
 def save_to_polars(
