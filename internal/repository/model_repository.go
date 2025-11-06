@@ -31,12 +31,12 @@ func NewModelRepository(db *gorm.DB) ModelRepository {
 func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) ([]models.Model, error) {
 	var items []models.Model
 	query := r.db.WithContext(ctx).
-		Preload("Pricing").
-		Preload("Architecture").
+		Joins("Pricing").
+		Joins("Architecture").
+		Joins("TopProvider").
+		Joins("DefaultParameters").
 		Preload("Architecture.Modalities").
-		Preload("TopProvider").
 		Preload("SupportedParameters").
-		Preload("DefaultParameters").
 		Preload("Endpoints").
 		Preload("Endpoints.Pricing").
 		Order("model_name")
