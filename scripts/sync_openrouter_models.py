@@ -131,7 +131,10 @@ class ModelArchitectureModality(Base):
     __tablename__ = "model_architecture_modalities"
     __table_args__ = (
         UniqueConstraint(
-            "architecture_id", "modality_type", "modality_value", name="uq_arch_modality"
+            "architecture_id",
+            "modality_type",
+            "modality_value",
+            name="uq_arch_modality",
         ),
     )
 
@@ -170,7 +173,9 @@ class ModelEndpoint(Base):
 
     __tablename__ = "model_endpoints"
     __table_args__ = (
-        UniqueConstraint("model_id", "name", "provider_name", "tag", name="uq_model_endpoint"),
+        UniqueConstraint(
+            "model_id", "name", "provider_name", "tag", name="uq_model_endpoint"
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -737,8 +742,12 @@ async def bulk_insert_models(
                         max_completion_tokens=ep.max_completion_tokens,
                         max_prompt_tokens=ep.max_prompt_tokens,
                         status=ep.status,
-                        uptime_last_30m=str(ep.uptime_last_30m) if ep.uptime_last_30m else None,
-                        supports_implicit_caching=str(ep.supports_implicit_caching).lower(),
+                        uptime_last_30m=(
+                            str(ep.uptime_last_30m) if ep.uptime_last_30m else None
+                        ),
+                        supports_implicit_caching=str(
+                            ep.supports_implicit_caching
+                        ).lower(),
                     )
                     session.add(endpoint)
                     await session.flush()  # Get endpoint ID
