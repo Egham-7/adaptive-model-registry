@@ -47,6 +47,12 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 	if filter.ModelName != "" {
 		query = query.Where("model_name = ?", filter.ModelName)
 	}
+	if filter.EndpointTag != "" {
+		query = query.Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
+			Where("model_endpoints.tag = ?", filter.EndpointTag).
+			Where("model_endpoints.status = 0").
+			Distinct()
+	}
 
 	if err := query.Find(&items).Error; err != nil {
 		return nil, err

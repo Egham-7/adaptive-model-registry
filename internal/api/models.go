@@ -27,8 +27,9 @@ func (h *ModelHandler) List(c *fiber.Ctx) error {
 	ctx := requestContext(c)
 
 	filter := models.ModelFilter{
-		Provider:  c.Query("provider"),
-		ModelName: c.Query("model_name"),
+		Provider:    c.Query("provider"),
+		ModelName:   c.Query("model_name"),
+		EndpointTag: c.Query("endpoint_tag"),
 	}
 
 	items, err := h.service.List(ctx, filter)
