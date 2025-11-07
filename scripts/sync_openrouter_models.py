@@ -61,13 +61,13 @@ class LLMModel(Base):
 
     __tablename__ = "llm_models"
     __table_args__ = (
-        UniqueConstraint("provider", "model_name", name="uq_provider_model"),
+        UniqueConstraint("author", "model_name", name="uq_author_model"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # Provider and model name form the composite unique identifier
-    provider = Column(String(50), nullable=False, index=True)
+    # Author and model name form the composite unique identifier
+    author = Column(String(50), nullable=False, index=True)
     model_name = Column(String(255), nullable=False, index=True)
 
     # Basic metadata
@@ -335,11 +335,11 @@ class OpenRouterModelWithEndpoints(BaseModel):
     supported_parameters: list[str]
     default_parameters: Optional[dict[str, Any]] = None
 
-    # Endpoints from /api/v1/models/{id}/endpoints
-    endpoints: list[Endpoint]
+    # Providers from /api/v1/models/{id}/endpoints
+    providers: list[Endpoint]
 
-    # Parsed provider info
-    provider: str
+    # Parsed author info
+    author: str
     model_name: str
 
     # Metadata
@@ -512,7 +512,17 @@ def parse_provider_model(model_id: str) -> tuple[Optional[str], Optional[str]]:
     provider = parts[0].lower()
     model_name = parts[1]
 
+    # Normalize specific Claude model names
+    model_name = normalize_model_name(model_name)
+
     return provider, model_name
+
+
+def normalize_model_name(model_name: str) -> str:
+    """Normalize specific Claude model names by replacing dots with dashes"""
+    if model_name in ["claude-sonnet-4.5", "claude-haiku-4.5", "claude-opus-4.1"]:
+        return model_name.replace(".", "-")
+    return model_name
 
 
 async def fetch_model_endpoints(
@@ -553,10 +563,10 @@ async def fetch_model_endpoints(
         endpoints_data = cached_data.get("endpoints", [])
         endpoints = [Endpoint(**ep) for ep in endpoints_data]
 
-        # Parse provider/model_name
-        provider, model_name = parse_provider_model(model.id)
-        if not provider or not model_name:
-            logger.warning(f"Could not parse provider/model from {model.id}")
+        # Parse author/model_name
+        author, model_name = parse_provider_model(model.id)
+        if not author or not model_name:
+            logger.warning(f"Could not parse author/model from {model.id}")
             return None
 
         # Convert timestamp
@@ -573,8 +583,8 @@ async def fetch_model_endpoints(
             created=model.created,
             supported_parameters=model.supported_parameters,
             default_parameters=model.default_parameters,
-            endpoints=endpoints,
-            provider=provider,
+            providers=endpoints,
+            author=author,
             model_name=model_name,
             created_at=created_at,
         )
@@ -609,8 +619,8 @@ async def fetch_all_endpoints_parallel(
 
 
 async def get_existing_models_from_db(session: AsyncSession) -> set[tuple[str, str]]:
-    """Get existing (provider, model_name) tuples from database"""
-    result = await session.execute(select(LLMModel.provider, LLMModel.model_name))
+    """Get existing (author, model_name) tuples from database"""
+    result = await session.execute(select(LLMModel.author, LLMModel.model_name))
     return {(row[0], row[1]) for row in result.all()}
 
 
@@ -625,7 +635,7 @@ async def bulk_insert_models(
     """
     # Get existing models
     existing = await get_existing_models_from_db(session)
-    new_models = [m for m in models if (m.provider, m.model_name) not in existing]
+    new_models = [m for m in models if (m.author, m.model_name) not in existing]
     skipped = len(models) - len(new_models)
 
     if not new_models:
@@ -638,7 +648,7 @@ async def bulk_insert_models(
         try:
             # 1. Insert core model
             db_model = LLMModel(
-                provider=m.provider,
+                author=m.author,
                 model_name=m.model_name,
                 display_name=m.name,
                 description=m.description,
@@ -715,8 +725,8 @@ async def bulk_insert_models(
                 )
                 session.add(default_params)
 
-            # 8. Insert endpoints
-            for ep in m.endpoints:
+            # 8. Insert providers
+            for ep in m.providers:
                 # Check if endpoint already exists (handle OpenRouter API duplicates)
                 existing_endpoint = await session.execute(
                     select(ModelEndpoint).where(
@@ -786,7 +796,7 @@ def save_to_polars(
     records = [
         {
             "openrouter_id": m.openrouter_id,
-            "provider": m.provider,
+            "author": m.author,
             "model_name": m.model_name,
             "display_name": m.name,
             "description": m.description,
@@ -797,8 +807,8 @@ def save_to_polars(
             "is_moderated": m.top_provider.is_moderated,
             "supports_tools": "tools" in m.supported_parameters,
             "supports_vision": "image" in m.architecture.input_modalities,
-            "num_endpoints": len(m.endpoints),
-            "endpoint_providers": [ep.provider_name for ep in m.endpoints],
+            "num_providers": len(m.providers),
+            "provider_providers": [ep.provider_name for ep in m.providers],
             "created_at": m.created_at,
             "last_updated": m.last_updated,
         }
@@ -844,14 +854,14 @@ async def main_async(
         f"✓ Fetched endpoints for {len(models_with_endpoints)} models (from {len(raw_models)} total)"
     )
 
-    # Group by provider for stats
-    by_provider: dict[str, int] = {}
+    # Group by author for stats
+    by_author: dict[str, int] = {}
     for model in models_with_endpoints:
-        by_provider[model.provider] = by_provider.get(model.provider, 0) + 1
+        by_author[model.author] = by_author.get(model.author, 0) + 1
 
-    logger.info("Models by provider:")
-    for provider, count in sorted(by_provider.items()):
-        logger.info(f"  • {provider}: {count} models")
+    logger.info("Models by author:")
+    for author, count in sorted(by_author.items()):
+        logger.info(f"  • {author}: {count} models")
 
     # Step 3: Optional exports
     if output_json:

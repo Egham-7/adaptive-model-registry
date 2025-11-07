@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,14 +23,40 @@ func NewModelHandler(service *services.ModelService) *ModelHandler {
 	return &ModelHandler{service: service}
 }
 
+// parseQueryArray extracts query parameters as a string slice.
+// Supports: ?key=val1&key=val2 OR ?key=val1,val2
+func parseQueryArray(c *fiber.Ctx, key string) []string {
+	var results []string
+
+	// Get all values for this key
+	values := c.Context().QueryArgs().PeekMulti(key)
+
+	for _, value := range values {
+		str := string(value)
+		if str != "" {
+			// Split by comma to support comma-separated values
+			parts := strings.Split(str, ",")
+			for _, part := range parts {
+				trimmed := strings.TrimSpace(part)
+				if trimmed != "" {
+					results = append(results, trimmed)
+				}
+			}
+		}
+	}
+
+	return results
+}
+
 // List returns all registered models.
 func (h *ModelHandler) List(c *fiber.Ctx) error {
 	ctx := requestContext(c)
 
 	filter := models.ModelFilter{
-		Provider:    c.Query("provider"),
-		ModelName:   c.Query("model_name"),
-		EndpointTag: c.Query("endpoint_tag"),
+		Authors:      parseQueryArray(c, "author"),
+		ModelNames:   parseQueryArray(c, "model_name"),
+		EndpointTags: parseQueryArray(c, "endpoint_tag"),
+		Providers:    parseQueryArray(c, "provider"),
 	}
 
 	items, err := h.service.List(ctx, filter)
@@ -85,8 +112,8 @@ func (h *ModelHandler) Upsert(c *fiber.Ctx) error {
 }
 
 func validateModel(m models.Model) error {
-	if m.Provider == "" {
-		return errors.New("provider is required")
+	if m.Author == "" {
+		return errors.New("author is required")
 	}
 	if m.ModelName == "" {
 		return errors.New("model_name is required")

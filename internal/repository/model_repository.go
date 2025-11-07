@@ -37,21 +37,35 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 		Joins("DefaultParameters").
 		Preload("Architecture.Modalities").
 		Preload("SupportedParameters").
-		Preload("Endpoints").
-		Preload("Endpoints.Pricing").
+		Preload("Providers").
+		Preload("Providers.Pricing").
 		Order("model_name")
 
-	if filter.Provider != "" {
-		query = query.Where("provider = ?", filter.Provider)
+	// Filter by authors (OR logic - match any)
+	if len(filter.Authors) > 0 {
+		query = query.Where("author IN ?", filter.Authors)
 	}
-	if filter.ModelName != "" {
-		query = query.Where("model_name = ?", filter.ModelName)
+
+	// Filter by model names (OR logic - match any)
+	if len(filter.ModelNames) > 0 {
+		query = query.Where("model_name IN ?", filter.ModelNames)
 	}
-	if filter.EndpointTag != "" {
-		query = query.Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
-			Where("model_endpoints.tag = ?", filter.EndpointTag).
-			Where("model_endpoints.status = 0").
-			Distinct()
+
+	// Filter by endpoint tags and/or providers (OR logic within each, AND between them)
+	if len(filter.EndpointTags) > 0 || len(filter.Providers) > 0 {
+		subQuery := query.Session(&gorm.Session{NewDB: true}).
+			Select("llm_models.id").
+			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
+			Where("model_endpoints.status = 0")
+
+		if len(filter.EndpointTags) > 0 {
+			subQuery = subQuery.Where("model_endpoints.tag IN ?", filter.EndpointTags)
+		}
+		if len(filter.Providers) > 0 {
+			subQuery = subQuery.Where("model_endpoints.provider_name IN ?", filter.Providers)
+		}
+
+		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
 	}
 
 	if err := query.Find(&items).Error; err != nil {
@@ -69,9 +83,9 @@ func (r *modelRepository) GetByProviderAndName(ctx context.Context, provider, na
 		Preload("TopProvider").
 		Preload("SupportedParameters").
 		Preload("DefaultParameters").
-		Preload("Endpoints").
-		Preload("Endpoints.Pricing").
-		Where("provider = ? AND model_name = ?", provider, name).
+		Preload("Providers").
+		Preload("Providers.Pricing").
+		Where("author = ? AND model_name = ?", provider, name).
 		First(&m).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -86,7 +100,7 @@ func (r *modelRepository) Upsert(ctx context.Context, input *models.Model) (*mod
 
 	var existing models.Model
 	err := r.db.WithContext(ctx).
-		Where("provider = ? AND model_name = ?", input.Provider, input.ModelName).
+		Where("author = ? AND model_name = ?", input.Author, input.ModelName).
 		First(&existing).Error
 	switch {
 	case errors.Is(err, gorm.ErrRecordNotFound):
@@ -149,19 +163,19 @@ func (r *modelRepository) Upsert(ctx context.Context, input *models.Model) (*mod
 				}
 			}
 
-			if len(input.Endpoints) > 0 {
-				for i := range input.Endpoints {
-					input.Endpoints[i].ModelID = input.ID
+			if len(input.Providers) > 0 {
+				for i := range input.Providers {
+					input.Providers[i].ModelID = input.ID
 				}
-				if err := tx.Create(&input.Endpoints).Error; err != nil {
+				if err := tx.Create(&input.Providers).Error; err != nil {
 					return err
 				}
 
-				// Create endpoint pricing
-				for i := range input.Endpoints {
-					if input.Endpoints[i].Pricing != nil {
-						input.Endpoints[i].Pricing.EndpointID = input.Endpoints[i].ID
-						if err := tx.Create(input.Endpoints[i].Pricing).Error; err != nil {
+				// Create provider pricing
+				for i := range input.Providers {
+					if input.Providers[i].Pricing != nil {
+						input.Providers[i].Pricing.EndpointID = input.Providers[i].ID
+						if err := tx.Create(input.Providers[i].Pricing).Error; err != nil {
 							return err
 						}
 					}
