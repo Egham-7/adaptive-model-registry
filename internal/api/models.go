@@ -35,8 +35,8 @@ func parseQueryArray(c *fiber.Ctx, key string) []string {
 		str := string(value)
 		if str != "" {
 			// Split by comma to support comma-separated values
-			parts := strings.Split(str, ",")
-			for _, part := range parts {
+			parts := strings.SplitSeq(str, ",")
+			for part := range parts {
 				trimmed := strings.TrimSpace(part)
 				if trimmed != "" {
 					results = append(results, trimmed)
