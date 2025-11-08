@@ -12,6 +12,7 @@ import (
 	"github.com/adaptive/adaptive-model-registry/internal/models"
 	"github.com/adaptive/adaptive-model-registry/internal/repository"
 	"github.com/adaptive/adaptive-model-registry/internal/server"
+	"github.com/adaptive/adaptive-model-registry/internal/services"
 )
 
 func main() {
@@ -39,9 +40,15 @@ func main() {
 		log.Fatalf("auto-migrate database: %v", err)
 	}
 
-	repo := repository.NewModelRepository(db)
+	// Initialize repositories
+	modelRepo := repository.NewModelRepository(db)
+	providerRepo := repository.NewProviderRepository(db)
 
-	srv, err := server.New(cfg, db, repo)
+	// Initialize services
+	modelService := services.NewModelService(modelRepo)
+	providerService := services.NewProviderService(providerRepo)
+
+	srv, err := server.New(cfg, db, modelService, providerService)
 	if err != nil {
 		log.Fatalf("init server: %v", err)
 	}

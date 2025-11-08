@@ -8,7 +8,6 @@ import (
 
 	"github.com/adaptive/adaptive-model-registry/internal/api"
 	"github.com/adaptive/adaptive-model-registry/internal/config"
-	"github.com/adaptive/adaptive-model-registry/internal/repository"
 	"github.com/adaptive/adaptive-model-registry/internal/services"
 )
 
@@ -19,7 +18,7 @@ type Server struct {
 }
 
 // New constructs a Server instance with routes registered.
-func New(cfg config.Config, db *gorm.DB, repo repository.ModelRepository) (*Server, error) {
+func New(cfg config.Config, db *gorm.DB, modelService *services.ModelService, providerService *services.ProviderService) (*Server, error) {
 	app := fiber.New(fiber.Config{
 		Immutable:            true,
 		CaseSensitive:        true,
@@ -35,12 +34,11 @@ func New(cfg config.Config, db *gorm.DB, repo repository.ModelRepository) (*Serv
 		WriteTimeout:         cfg.WriteTimeout,
 	})
 
-	modelService := services.NewModelService(repo)
-
 	api.Register(app, api.Deps{
-		Config: cfg,
-		DB:     db,
-		Models: modelService,
+		Config:    cfg,
+		DB:        db,
+		Models:    modelService,
+		Providers: providerService,
 	})
 
 	return &Server{

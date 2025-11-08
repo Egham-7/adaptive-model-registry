@@ -48,3 +48,20 @@ func parseQueryString(c *fiber.Ctx, key string) *string {
 	}
 	return &val
 }
+
+// parseQueryBool extracts a single boolean query parameter
+func parseQueryBool(c *fiber.Ctx, key string) *bool {
+	val := c.Query(key)
+	if val == "" {
+		return nil
+	}
+
+	switch val {
+	case "true":
+		return &[]bool{true}[0]
+	case "false":
+		return &[]bool{false}[0]
+	default:
+		return nil
+	}
+}

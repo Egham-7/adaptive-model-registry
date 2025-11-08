@@ -10,14 +10,16 @@ import (
 
 // Deps groups dependencies required by the API handlers.
 type Deps struct {
-	Config config.Config
-	DB     *gorm.DB
-	Models *services.ModelService
+	Config    config.Config
+	DB        *gorm.DB
+	Models    *services.ModelService
+	Providers *services.ProviderService
 }
 
 // Register mounts all API routes on the provided Fiber app.
 func Register(app *fiber.App, deps Deps) {
 	models := NewModelHandler(deps.Models)
+	providers := NewProviderHandler(deps.Providers)
 	health := NewHealthHandler(deps.DB)
 
 	app.Get("/", Root)
@@ -25,4 +27,5 @@ func Register(app *fiber.App, deps Deps) {
 	app.Get("/models", models.List)
 	app.Get("/models/:provider/:name", models.GetByProviderAndName)
 	app.Post("/models", models.Upsert)
+	app.Get("/providers", providers.List)
 }
