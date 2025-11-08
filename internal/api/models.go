@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,40 +22,26 @@ func NewModelHandler(service *services.ModelService) *ModelHandler {
 	return &ModelHandler{service: service}
 }
 
-// parseQueryArray extracts query parameters as a string slice.
-// Supports: ?key=val1&key=val2 OR ?key=val1,val2
-func parseQueryArray(c *fiber.Ctx, key string) []string {
-	var results []string
-
-	// Get all values for this key
-	values := c.Context().QueryArgs().PeekMulti(key)
-
-	for _, value := range values {
-		str := string(value)
-		if str != "" {
-			// Split by comma to support comma-separated values
-			parts := strings.SplitSeq(str, ",")
-			for part := range parts {
-				trimmed := strings.TrimSpace(part)
-				if trimmed != "" {
-					results = append(results, trimmed)
-				}
-			}
-		}
-	}
-
-	return results
-}
-
 // List returns all registered models.
 func (h *ModelHandler) List(c *fiber.Ctx) error {
 	ctx := requestContext(c)
 
 	filter := models.ModelFilter{
+		// Existing filters
 		Authors:      parseQueryArray(c, "author"),
 		ModelNames:   parseQueryArray(c, "model_name"),
 		EndpointTags: parseQueryArray(c, "endpoint_tag"),
 		Providers:    parseQueryArray(c, "provider"),
+
+		// NEW: Advanced filters
+		InputModalities:   parseQueryArray(c, "input_modality"),
+		OutputModalities:  parseQueryArray(c, "output_modality"),
+		MinContextLength:  parseQueryInt(c, "min_context_length"),
+		MaxPromptCost:     parseQueryString(c, "max_prompt_cost"),
+		MaxCompletionCost: parseQueryString(c, "max_completion_cost"),
+		SupportedParams:   parseQueryArray(c, "supported_param"),
+		Status:            parseQueryInt(c, "status"),
+		Quantizations:     parseQueryArray(c, "quantization"),
 	}
 
 	items, err := h.service.List(ctx, filter)

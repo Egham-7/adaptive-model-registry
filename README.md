@@ -29,7 +29,35 @@ The server listens on `http://localhost:3000`.
 
 - `GET /` – service metadata and docs link.
 - `GET /healthz` – checks database connectivity and returns `200 OK`.
-- `GET /models` – lists all models persisted in Postgres; supports optional `provider`, `model_name`, and `openrouter_id` query parameters for filtering.
+- `GET /models` – lists all models persisted in Postgres with comprehensive filtering support:
+
+  **Basic Filters:**
+  - `author` - Filter by author(s): `?author=openai&author=anthropic`
+  - `model_name` - Filter by model name(s): `?model_name=gpt-4&model_name=claude-3`
+  - `endpoint_tag` - Filter by endpoint tag(s): `?endpoint_tag=openai&endpoint_tag=anthropic`
+  - `provider` - Filter by provider name(s): `?provider=OpenAI`
+
+  **Advanced Filters:**
+  - `input_modality` - Filter by input modality: `?input_modality=text&input_modality=image`
+  - `output_modality` - Filter by output modality: `?output_modality=text`
+  - `min_context_length` - Minimum context window: `?min_context_length=128000`
+  - `max_prompt_cost` - Maximum prompt cost: `?max_prompt_cost=0.00001`
+  - `max_completion_cost` - Maximum completion cost: `?max_completion_cost=0.00003`
+  - `supported_param` - Required parameters: `?supported_param=tools&supported_param=vision`
+  - `status` - Endpoint status (0=active): `?status=0`
+  - `quantization` - Model quantization: `?quantization=fp16`
+
+  **Examples:**
+  ```bash
+  # Find OpenAI models with vision support
+  GET /models?author=openai&supported_param=vision
+
+  # Find models with 128k+ context under $0.01/1M tokens
+  GET /models?min_context_length=128000&max_prompt_cost=0.00001
+
+  # Find active text-to-text models
+  GET /models?input_modality=text&output_modality=text&status=0
+  ```
 - `GET /models/:name` – fetches the first model matching `model_name` (names may appear under multiple providers).
 - `GET /models/openrouter/:id` – fetches a model by its canonical `openrouter_id`.
 - `POST /models` – inserts or updates a model (upsert on `model_name`). Example body:
