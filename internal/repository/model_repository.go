@@ -53,7 +53,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by endpoint tags and/or providers (OR logic within each, AND between them)
 	if len(filter.EndpointTags) > 0 || len(filter.Providers) > 0 {
-		subQuery := query.Session(&gorm.Session{NewDB: true}).
+		subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 			Select("llm_models.id").
 			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
 			Where("model_endpoints.status = 0")
@@ -70,7 +70,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by input modalities
 	if len(filter.InputModalities) > 0 {
-		subQuery := query.Session(&gorm.Session{NewDB: true}).
+		subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 			Select("llm_models.id").
 			Joins("JOIN model_architecture ON model_architecture.model_id = llm_models.id").
 			Joins("JOIN model_architecture_modalities ON model_architecture_modalities.architecture_id = model_architecture.id").
@@ -82,7 +82,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by output modalities
 	if len(filter.OutputModalities) > 0 {
-		subQuery := query.Session(&gorm.Session{NewDB: true}).
+		subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 			Select("llm_models.id").
 			Joins("JOIN model_architecture ON model_architecture.model_id = llm_models.id").
 			Joins("JOIN model_architecture_modalities ON model_architecture_modalities.architecture_id = model_architecture.id").
@@ -99,20 +99,18 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by maximum prompt cost
 	if filter.MaxPromptCost != nil {
-		query = query.Joins("LEFT JOIN model_pricing ON model_pricing.model_id = llm_models.id").
-			Where("model_pricing.prompt_cost <= ?", *filter.MaxPromptCost)
+		query = query.Where("Pricing.prompt_cost <= ?", *filter.MaxPromptCost)
 	}
 
 	// Filter by maximum completion cost
 	if filter.MaxCompletionCost != nil {
-		query = query.Joins("LEFT JOIN model_pricing ON model_pricing.model_id = llm_models.id").
-			Where("model_pricing.completion_cost <= ?", *filter.MaxCompletionCost)
+		query = query.Where("Pricing.completion_cost <= ?", *filter.MaxCompletionCost)
 	}
 
 	// Filter by supported parameters
 	if len(filter.SupportedParams) > 0 {
 		for _, param := range filter.SupportedParams {
-			subQuery := query.Session(&gorm.Session{NewDB: true}).
+			subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 				Select("llm_models.id").
 				Joins("JOIN model_supported_parameters ON model_supported_parameters.model_id = llm_models.id").
 				Where("model_supported_parameters.parameter_name = ?", param)
@@ -123,7 +121,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by endpoint status
 	if filter.Status != nil {
-		subQuery := query.Session(&gorm.Session{NewDB: true}).
+		subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 			Select("llm_models.id").
 			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
 			Where("model_endpoints.status = ?", *filter.Status)
@@ -133,7 +131,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 
 	// Filter by quantizations
 	if len(filter.Quantizations) > 0 {
-		subQuery := query.Session(&gorm.Session{NewDB: true}).
+		subQuery := r.db.WithContext(ctx).Model(&models.Model{}).
 			Select("llm_models.id").
 			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
 			Where("model_endpoints.quantization IN ?", filter.Quantizations)
