@@ -17,3 +17,15 @@ type ModelFilter struct {
 	Status            *int     `json:"status,omitzero"`              // Endpoint status filter
 	Quantizations     []string `json:"quantizations,omitzero"`       // Filter by quantization
 }
+
+// ProviderFilter defines optional filtering criteria when listing providers.
+// All fields support multiple values (OR logic within field, AND logic between fields).
+type ProviderFilter struct {
+	Tags             []string `json:"tags,omitzero"`               // Filter by provider tag(s) - OR logic
+	Status           *int     `json:"status,omitzero"`             // Endpoint status filter
+	InputModalities  []string `json:"input_modalities,omitzero"`   // Filter by input modality
+	OutputModalities []string `json:"output_modalities,omitzero"`  // Filter by output modality
+	MinContextLength *int     `json:"min_context_length,omitzero"` // Minimum context window
+	HasPricing       *bool    `json:"has_pricing,omitzero"`        // Filter by pricing availability
+	Quantizations    []string `json:"quantizations,omitzero"`      // Filter by quantization
+}

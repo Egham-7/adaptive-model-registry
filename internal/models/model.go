@@ -144,3 +144,13 @@ type Model struct {
 func (Model) TableName() string {
 	return "llm_models"
 }
+
+// Provider represents aggregated provider metadata from model endpoints
+type Provider struct {
+	Name          string   `json:"name"`           // Provider name (e.g., "openai", "anthropic")
+	Tags          []string `json:"tags"`           // Unique tags across all endpoints
+	ModelCount    int      `json:"model_count"`    // Number of unique models
+	EndpointCount int      `json:"endpoint_count"` // Total number of endpoints
+	ActiveCount   int      `json:"active_count"`   // Number of active endpoints (status = 0)
+	Quantizations []string `json:"quantizations"`  // Unique quantizations available
+}
