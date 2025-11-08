@@ -65,7 +65,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 			subQuery = subQuery.Where("model_endpoints.provider_name IN ?", filter.Providers)
 		}
 
-		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+		query = query.Where("llm_models.id IN (?)", subQuery)
 	}
 
 	// Filter by input modalities
@@ -77,7 +77,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 			Where("model_architecture_modalities.modality_type = ?", "input").
 			Where("model_architecture_modalities.modality_value IN ?", filter.InputModalities)
 
-		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+		query = query.Where("llm_models.id IN (?)", subQuery)
 	}
 
 	// Filter by output modalities
@@ -89,7 +89,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 			Where("model_architecture_modalities.modality_type = ?", "output").
 			Where("model_architecture_modalities.modality_value IN ?", filter.OutputModalities)
 
-		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+		query = query.Where("llm_models.id IN (?)", subQuery)
 	}
 
 	// Filter by minimum context length
@@ -126,7 +126,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
 			Where("model_endpoints.status = ?", *filter.Status)
 
-		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+		query = query.Where("llm_models.id IN (?)", subQuery)
 	}
 
 	// Filter by quantizations
@@ -136,7 +136,7 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
 			Where("model_endpoints.quantization IN ?", filter.Quantizations)
 
-		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+		query = query.Where("llm_models.id IN (?)", subQuery)
 	}
 
 	if err := query.Find(&items).Error; err != nil {
