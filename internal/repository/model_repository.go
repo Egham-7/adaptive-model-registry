@@ -68,6 +68,79 @@ func (r *modelRepository) List(ctx context.Context, filter models.ModelFilter) (
 		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
 	}
 
+	// Filter by input modalities
+	if len(filter.InputModalities) > 0 {
+		subQuery := query.Session(&gorm.Session{NewDB: true}).
+			Select("llm_models.id").
+			Joins("JOIN model_architecture ON model_architecture.model_id = llm_models.id").
+			Joins("JOIN model_architecture_modalities ON model_architecture_modalities.architecture_id = model_architecture.id").
+			Where("model_architecture_modalities.modality_type = ?", "input").
+			Where("model_architecture_modalities.modality_value IN ?", filter.InputModalities)
+
+		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+	}
+
+	// Filter by output modalities
+	if len(filter.OutputModalities) > 0 {
+		subQuery := query.Session(&gorm.Session{NewDB: true}).
+			Select("llm_models.id").
+			Joins("JOIN model_architecture ON model_architecture.model_id = llm_models.id").
+			Joins("JOIN model_architecture_modalities ON model_architecture_modalities.architecture_id = model_architecture.id").
+			Where("model_architecture_modalities.modality_type = ?", "output").
+			Where("model_architecture_modalities.modality_value IN ?", filter.OutputModalities)
+
+		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+	}
+
+	// Filter by minimum context length
+	if filter.MinContextLength != nil {
+		query = query.Where("context_length >= ?", *filter.MinContextLength)
+	}
+
+	// Filter by maximum prompt cost
+	if filter.MaxPromptCost != nil {
+		query = query.Joins("LEFT JOIN model_pricing ON model_pricing.model_id = llm_models.id").
+			Where("model_pricing.prompt_cost <= ?", *filter.MaxPromptCost)
+	}
+
+	// Filter by maximum completion cost
+	if filter.MaxCompletionCost != nil {
+		query = query.Joins("LEFT JOIN model_pricing ON model_pricing.model_id = llm_models.id").
+			Where("model_pricing.completion_cost <= ?", *filter.MaxCompletionCost)
+	}
+
+	// Filter by supported parameters
+	if len(filter.SupportedParams) > 0 {
+		for _, param := range filter.SupportedParams {
+			subQuery := query.Session(&gorm.Session{NewDB: true}).
+				Select("llm_models.id").
+				Joins("JOIN model_supported_parameters ON model_supported_parameters.model_id = llm_models.id").
+				Where("model_supported_parameters.parameter_name = ?", param)
+
+			query = query.Where("llm_models.id IN (?)", subQuery)
+		}
+	}
+
+	// Filter by endpoint status
+	if filter.Status != nil {
+		subQuery := query.Session(&gorm.Session{NewDB: true}).
+			Select("llm_models.id").
+			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
+			Where("model_endpoints.status = ?", *filter.Status)
+
+		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+	}
+
+	// Filter by quantizations
+	if len(filter.Quantizations) > 0 {
+		subQuery := query.Session(&gorm.Session{NewDB: true}).
+			Select("llm_models.id").
+			Joins("JOIN model_endpoints ON model_endpoints.model_id = llm_models.id").
+			Where("model_endpoints.quantization IN ?", filter.Quantizations)
+
+		query = query.Where("llm_models.id IN (?)", subQuery).Distinct()
+	}
+
 	if err := query.Find(&items).Error; err != nil {
 		return nil, err
 	}
