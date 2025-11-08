@@ -124,8 +124,8 @@ func (ModelDefaultParameters) TableName() string {
 // Model represents the core LLM model with normalized relationships
 type Model struct {
 	ID            int64     `json:"id" gorm:"primaryKey;autoIncrement"`
-	Provider      string    `json:"provider" gorm:"column:provider;index;uniqueIndex:idx_provider_model"`
-	ModelName     string    `json:"model_name" gorm:"column:model_name;index;uniqueIndex:idx_provider_model"`
+	Author        string    `json:"author" gorm:"column:author;index;uniqueIndex:idx_author_model"`
+	ModelName     string    `json:"model_name" gorm:"column:model_name;index;uniqueIndex:idx_author_model"`
 	DisplayName   string    `json:"display_name,omitzero" gorm:"column:display_name"`
 	Description   string    `json:"description,omitzero" gorm:"column:description"`
 	ContextLength int       `json:"context_length,omitzero" gorm:"column:context_length"`
@@ -138,7 +138,7 @@ type Model struct {
 	TopProvider         *ModelTopProvider         `json:"top_provider,omitzero" gorm:"foreignKey:ModelID"`
 	SupportedParameters []ModelSupportedParameter `json:"supported_parameters,omitzero" gorm:"foreignKey:ModelID"`
 	DefaultParameters   *ModelDefaultParameters   `json:"default_parameters,omitzero" gorm:"foreignKey:ModelID"`
-	Endpoints           []ModelEndpoint           `json:"endpoints,omitzero" gorm:"foreignKey:ModelID"`
+	Providers           []ModelEndpoint           `json:"providers,omitzero" gorm:"foreignKey:ModelID"`
 }
 
 func (Model) TableName() string {
