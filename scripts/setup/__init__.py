@@ -9,15 +9,16 @@ import argparse
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from .fetchers.openrouter import fetch_all_endpoints_parallel, fetch_openrouter_models
 from .fetchers.zdr import fetch_zdr_endpoints
 from .inserters.bulk_insert import bulk_insert_models
-from .models.database import Base
+from .models.database import Base, SyncMetadata
 from .models.openrouter import OpenRouterModelWithEndpoints
 from .models.zdr import ZDREndpoint
 from .updaters.architecture import (
@@ -52,12 +53,40 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def should_sync(
+    session: AsyncSession, sync_type: str, max_age_hours: int = 24
+) -> bool:
+    """Check if we need to sync based on last sync time"""
+    result = await session.execute(
+        select(SyncMetadata)
+        .where(SyncMetadata.sync_type == sync_type)
+        .order_by(SyncMetadata.last_sync_at.desc())
+        .limit(1)
+    )
+    last_sync = result.scalar_one_or_none()
+
+    if not last_sync:
+        logger.info(f"Never synced {sync_type} before, will sync now")
+        return True  # Never synced before
+
+    age_hours = (datetime.now(UTC) - last_sync.last_sync_at).total_seconds() / 3600
+
+    if age_hours >= max_age_hours:
+        logger.info(
+            f"{sync_type} data is {age_hours:.1f} hours old (max: {max_age_hours}h), will sync"
+        )
+        return True
+
+    logger.info(f"{sync_type} data is {age_hours:.1f} hours old, skipping sync")
+    return False
+
+
 async def main_async(
     db_url: str,
-    output_json: Optional[str] = None,
-    output_parquet: Optional[str] = None,
-    output_csv: Optional[str] = None,
-    no_cache: bool = False,
+    output_json: str | None = None,
+    output_parquet: str | None = None,
+    output_csv: str | None = None,
+    force_refresh: bool = False,
 ) -> None:
     """Main async pipeline using SQLAlchemy ORM"""
     # Validate parameter constants on startup
@@ -65,22 +94,80 @@ async def main_async(
 
     logger.info("🚀 Starting OpenRouter model sync pipeline")
 
-    # Step 1: Fetch models from OpenRouter (with caching)
-    raw_models = await fetch_openrouter_models(use_cache=not no_cache)
-
-    # Step 2: Fetch endpoints for all models in parallel (with caching)
-    logger.info(f"Fetching endpoints for {len(raw_models)} models in parallel...")
-    models_with_endpoints = await fetch_all_endpoints_parallel(
-        raw_models, use_cache=not no_cache
-    )
-    logger.info(
-        f"✓ Fetched endpoints for {len(models_with_endpoints)} models (from {len(raw_models)} total)"
+    # Connect to PostgreSQL early to check sync status
+    logger.info("Connecting to PostgreSQL...")
+    async_db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
+    engine = create_async_engine(
+        async_db_url, echo=False, pool_size=10, max_overflow=20
     )
 
-    # Step 2.5: Fetch ZDR endpoints (with caching)
-    logger.info("Fetching ZDR endpoints...")
-    zdr_lookup = await fetch_zdr_endpoints(use_cache=not no_cache)
-    logger.info(f"✓ Fetched {len(zdr_lookup)} ZDR endpoints")
+    # Create tables (including new SyncMetadata table)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("✓ Database tables created/verified")
+
+    # Create session factory
+    async_session = async_sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )
+
+    # Check if we need to sync OpenRouter models
+    should_sync_models = force_refresh
+    if not force_refresh:
+        async with async_session() as session:
+            should_sync_models = await should_sync(session, "openrouter_models")
+
+    raw_models = []
+    models_with_endpoints = []
+    zdr_lookup = {}
+
+    if should_sync_models:
+        # Step 1: Fetch models from OpenRouter
+        logger.info("Fetching OpenRouter models...")
+        raw_models = await fetch_openrouter_models(
+            use_cache=False
+        )  # Always fresh for sync
+
+        # Step 2: Fetch endpoints for all models in parallel
+        logger.info(f"Fetching endpoints for {len(raw_models)} models in parallel...")
+        models_with_endpoints = await fetch_all_endpoints_parallel(
+            raw_models,
+            use_cache=False,  # Always fresh for sync
+        )
+        logger.info(
+            f"✓ Fetched endpoints for {len(models_with_endpoints)} models (from {len(raw_models)} total)"
+        )
+
+        # Step 2.5: Fetch ZDR endpoints
+        logger.info("Fetching ZDR endpoints...")
+        zdr_lookup = await fetch_zdr_endpoints(use_cache=False)  # Always fresh for sync
+        logger.info(f"✓ Fetched {len(zdr_lookup)} ZDR endpoints")
+
+        # Record sync metadata
+        async with async_session() as session:
+            # Upsert OpenRouter models sync metadata
+            sync_metadata = SyncMetadata(
+                sync_type="openrouter_models",
+                last_sync_at=datetime.now(UTC),
+                models_count=len(models_with_endpoints),
+            )
+            await session.merge(sync_metadata)
+
+            # Upsert ZDR endpoints sync metadata
+            zdr_sync_metadata = SyncMetadata(
+                sync_type="zdr_endpoints",
+                last_sync_at=datetime.now(UTC),
+                zdr_endpoints_count=len(zdr_lookup),
+            )
+            await session.merge(zdr_sync_metadata)
+
+            await session.commit()
+
+        logger.info("✓ Sync metadata recorded")
+    else:
+        logger.info("⏭️  Skipping API calls - using existing database data")
+        # If not syncing, we still need to load data from database for updates
+        # This is handled by the update functions below
 
     # Group by author for stats
     by_author: dict[str, int] = {}
@@ -109,23 +196,7 @@ async def main_async(
     if output_csv:
         save_to_polars(models_with_endpoints, Path(output_csv), format="csv")
 
-    # Step 4: Connect to PostgreSQL with SQLAlchemy
-    logger.info("Connecting to PostgreSQL...")
-    # Convert postgresql:// to postgresql+asyncpg://
-    async_db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
-    engine = create_async_engine(
-        async_db_url, echo=False, pool_size=10, max_overflow=20
-    )
-
-    # Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("✓ Database tables created/verified")
-
-    # Create session factory
-    async_session = async_sessionmaker(
-        engine, expire_on_commit=False, class_=AsyncSession
-    )
+    # Database connection already established above
 
     # Step 5: Update existing models with new data
     logger.info("Updating existing models with new data...")
@@ -205,9 +276,9 @@ def main() -> None:
         help="Optional: Save dataset to CSV file",
     )
     parser.add_argument(
-        "--no-cache",
+        "--force-refresh",
         action="store_true",
-        help="Skip cache and fetch fresh data from OpenRouter API",
+        help="Force refresh data from OpenRouter API (ignore sync timestamps)",
     )
     args = parser.parse_args()
 
@@ -218,7 +289,7 @@ def main() -> None:
             args.output_json,
             args.output_parquet,
             args.output_csv,
-            args.no_cache,
+            args.force_refresh,
         )
     )
 

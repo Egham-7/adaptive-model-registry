@@ -2,8 +2,6 @@
 ZDR (Zero Downtime Routing) endpoint models.
 """
 
-from typing import Union
-
 from pydantic import BaseModel, field_validator
 
 
@@ -23,7 +21,7 @@ class ZDREndpointPricing(BaseModel):
 
     @field_validator("discount", mode="before")
     @classmethod
-    def validate_discount(cls, v: Union[str, int, float]) -> str:
+    def validate_discount(cls, v: str | int | float) -> str:
         """Convert discount to string if it's a number"""
         if isinstance(v, (int, float)):
             return str(v)

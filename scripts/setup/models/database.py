@@ -2,7 +2,7 @@
 SQLAlchemy database models for the model registry.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -48,8 +49,8 @@ class LLMModel(Base):
     last_updated = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
 
@@ -224,3 +225,21 @@ class ModelDefaultParameters(Base):
     )
 
     parameters = Column(JSON)
+
+
+class SyncMetadata(Base):
+    """Tracks synchronization metadata to avoid unnecessary API calls"""
+
+    __tablename__ = "sync_metadata"
+
+    id = Column(Integer, primary_key=True)
+    sync_type = Column(
+        String, nullable=False, index=True
+    )  # "openrouter_models", "zdr_endpoints"
+    last_sync_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    models_count = Column(Integer)
+    zdr_endpoints_count = Column(Integer)
+
+    __table_args__ = (UniqueConstraint("sync_type"),)

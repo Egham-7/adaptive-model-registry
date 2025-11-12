@@ -28,7 +28,7 @@ The server listens on `http://localhost:3000`.
 ### API
 
 - `GET /` – service metadata and docs link.
-- `GET /healthz` – checks database connectivity and returns `200 OK`.
+- `GET /healthz` – checks database connectivity and returns health status as JSON.
 - `GET /models` – lists all models persisted in Postgres with comprehensive filtering support:
 
   **Basic Filters:**

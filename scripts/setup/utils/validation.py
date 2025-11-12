@@ -3,7 +3,6 @@ Parameter validation utilities for model registry setup.
 """
 
 import logging
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -104,21 +103,21 @@ class SupportedParameter(str):
 class DefaultParametersValues(BaseModel):
     """Python equivalent of Go DefaultParametersValues"""
 
-    temperature: Optional[float] = None
-    top_p: Optional[float] = None
-    top_k: Optional[float] = None
-    min_p: Optional[float] = None
-    top_a: Optional[float] = None
-    frequency_penalty: Optional[float] = None
-    max_tokens: Optional[float] = None
-    max_completion_tokens: Optional[float] = None
-    top_logprobs: Optional[float] = None
-    seed: Optional[float] = None
-    n: Optional[float] = None
-    stop_sequences: Optional[list[str]] = None
-    parallel_tool_calls: Optional[bool] = None
-    store: Optional[bool] = None
-    logprobs: Optional[bool] = None
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: float | None = None
+    min_p: float | None = None
+    top_a: float | None = None
+    frequency_penalty: float | None = None
+    max_tokens: float | None = None
+    max_completion_tokens: float | None = None
+    top_logprobs: float | None = None
+    seed: float | None = None
+    n: float | None = None
+    stop_sequences: list[str] | None = None
+    parallel_tool_calls: bool | None = None
+    store: bool | None = None
+    logprobs: bool | None = None
 
 
 def is_valid_supported_parameter(param: str) -> bool:
