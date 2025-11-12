@@ -74,52 +74,52 @@ jobs:
           args: --timeout=5m
           install-mode: goinstall
 
-   security:
-     name: Security Scan
-     runs-on: ubuntu-latest
-     steps:
-       - name: Checkout
-         uses: actions/checkout@v4
-       - name: Setup Go
-         uses: actions/setup-go@v5
-         with:
-           go-version: ${{ env.GO_VERSION }}
-       - name: Download dependencies
-         run: go mod download
-       - name: Install Gosec
-         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-       - name: Run Gosec
-         run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Download dependencies
+        run: go mod download
+      - name: Install Gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run Gosec
+        run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
 
-   python-lint:
-     name: Python Lint & Type Check
-     runs-on: ubuntu-latest
-     steps:
-       - name: Checkout
-         uses: actions/checkout@v4
-       - name: Setup Python
-         uses: actions/setup-python@v5
-         with:
-           python-version: '3.12'
-       - name: Install uv
-         run: pip install uv
-       - name: Install dependencies
-         run: cd scripts && uv sync --frozen
-       - name: Run ruff linting
-         run: cd scripts && uv run ruff check .
-       - name: Run mypy type checking
-         run: cd scripts && uv run mypy .
-       - name: Check black formatting
-         run: cd scripts && uv run black --check .
-       - name: Check ruff formatting
-         run: cd scripts && uv run ruff format --check .
-       - name: Test module imports
-         run: cd scripts && uv run python -c "import setup; print('Setup module imports successfully')"
+  python-lint:
+    name: Python Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: cd scripts && uv sync --frozen
+      - name: Run ruff linting
+        run: cd scripts && uv run ruff check .
+      - name: Run mypy type checking
+        run: cd scripts && uv run mypy .
+      - name: Check black formatting
+        run: cd scripts && uv run black --check .
+      - name: Check ruff formatting
+        run: cd scripts && uv run ruff format --check .
+      - name: Test module imports
+        run: cd scripts && uv run python -c "import setup; print('Setup module imports successfully')"
 
-   build:
-     name: Build
-     runs-on: ubuntu-latest
-     needs: [test, lint, python-lint]
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint, python-lint]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
