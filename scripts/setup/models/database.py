@@ -3,7 +3,6 @@ SQLAlchemy database models for the model registry.
 """
 
 from datetime import datetime, timezone
-from typing import Any
 
 from sqlalchemy import (
     JSON,
@@ -31,9 +30,7 @@ class LLMModel(Base):
     """Core model table with basic metadata"""
 
     __tablename__ = "llm_models"
-    __table_args__ = (
-        UniqueConstraint("author", "model_name", name="uq_author_model"),
-    )
+    __table_args__ = (UniqueConstraint("author", "model_name", name="uq_author_model"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 

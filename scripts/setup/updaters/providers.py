@@ -23,8 +23,7 @@ async def update_existing_top_provider(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -63,6 +62,8 @@ async def update_existing_top_provider(
 
     if updated_count > 0:
         await session.commit()
-        logger.info(f"✓ Updated top provider metadata for {updated_count} existing models")
+        logger.info(
+            f"✓ Updated top provider metadata for {updated_count} existing models"
+        )
 
     return updated_count

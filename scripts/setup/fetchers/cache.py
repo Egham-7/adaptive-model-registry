@@ -132,7 +132,9 @@ def load_cached_zdr_endpoints() -> Optional[list[dict[str, Any]]]:
     ) / 3600
 
     if cache_age_hours > 24:
-        logger.info(f"ZDR endpoints cache is {cache_age_hours:.1f} hours old, will refresh")
+        logger.info(
+            f"ZDR endpoints cache is {cache_age_hours:.1f} hours old, will refresh"
+        )
         return None
 
     try:
@@ -154,6 +156,8 @@ def save_zdr_endpoints_to_cache(zdr_endpoints: list[dict[str, Any]]) -> None:
     try:
         with open(cache_path, "w") as f:
             json.dump(zdr_endpoints, f)
-        logger.info(f"✓ Saved {len(zdr_endpoints)} ZDR endpoints to cache: {cache_path}")
+        logger.info(
+            f"✓ Saved {len(zdr_endpoints)} ZDR endpoints to cache: {cache_path}"
+        )
     except Exception as e:
         logger.warning(f"Failed to save ZDR endpoints cache: {e}")

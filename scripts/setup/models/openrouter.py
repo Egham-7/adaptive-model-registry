@@ -61,7 +61,9 @@ class OpenRouterModel(BaseModel):
     @classmethod
     def validate_supported_parameters(cls, v: list[str]) -> list[str]:
         """Validate that all supported parameters are valid"""
-        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        invalid_params = [
+            param for param in v if not is_valid_supported_parameter(param)
+        ]
         if invalid_params:
             logger.warning(f"Found invalid supported parameters: {invalid_params}")
             # Filter out invalid parameters instead of failing
@@ -70,7 +72,9 @@ class OpenRouterModel(BaseModel):
 
     @field_validator("default_parameters")
     @classmethod
-    def validate_default_parameters(cls, v: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    def validate_default_parameters(
+        cls, v: Optional[dict[str, Any]]
+    ) -> Optional[dict[str, Any]]:
         """Validate that default parameters only contain valid keys"""
         if v is None:
             return v
@@ -104,9 +108,13 @@ class Endpoint(BaseModel):
     @classmethod
     def validate_supported_parameters(cls, v: list[str]) -> list[str]:
         """Validate that all supported parameters are valid"""
-        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        invalid_params = [
+            param for param in v if not is_valid_supported_parameter(param)
+        ]
         if invalid_params:
-            logger.warning(f"Found invalid supported parameters in endpoint: {invalid_params}")
+            logger.warning(
+                f"Found invalid supported parameters in endpoint: {invalid_params}"
+            )
             # Filter out invalid parameters instead of failing
             v = [param for param in v if is_valid_supported_parameter(param)]
         return v
@@ -144,23 +152,31 @@ class OpenRouterModelWithEndpoints(BaseModel):
     @classmethod
     def validate_supported_parameters(cls, v: list[str]) -> list[str]:
         """Validate that all supported parameters are valid"""
-        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        invalid_params = [
+            param for param in v if not is_valid_supported_parameter(param)
+        ]
         if invalid_params:
-            logger.warning(f"Found invalid supported parameters in {cls.__name__}: {invalid_params}")
+            logger.warning(
+                f"Found invalid supported parameters in {cls.__name__}: {invalid_params}"
+            )
             # Filter out invalid parameters instead of failing
             v = [param for param in v if is_valid_supported_parameter(param)]
         return v
 
     @field_validator("default_parameters")
     @classmethod
-    def validate_default_parameters(cls, v: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    def validate_default_parameters(
+        cls, v: Optional[dict[str, Any]]
+    ) -> Optional[dict[str, Any]]:
         """Validate that default parameters only contain valid keys"""
         if v is None:
             return v
 
         invalid_keys = [key for key in v.keys() if not is_valid_default_parameter(key)]
         if invalid_keys:
-            logger.warning(f"Found invalid default parameter keys in {cls.__name__}: {invalid_keys}")
+            logger.warning(
+                f"Found invalid default parameter keys in {cls.__name__}: {invalid_keys}"
+            )
             # Remove invalid keys instead of failing
             v = {k: v[k] for k in v.keys() if is_valid_default_parameter(k)}
         return v

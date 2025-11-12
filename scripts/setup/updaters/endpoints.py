@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def update_existing_endpoints(
     session: AsyncSession,
     models: list[OpenRouterModelWithEndpoints],
-    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint]
+    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint],
 ) -> int:
     """Update existing endpoints with new data from OpenRouter and ZDR"""
     updated_count = 0
@@ -26,8 +26,7 @@ async def update_existing_endpoints(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -44,7 +43,7 @@ async def update_existing_endpoints(
                     ModelEndpoint.model_id == model_id,
                     ModelEndpoint.name == ep.name,
                     ModelEndpoint.provider_name == ep.provider_name,
-                    ModelEndpoint.tag == ep.tag
+                    ModelEndpoint.tag == ep.tag,
                 )
             )
             db_endpoint = result.scalar_one_or_none()

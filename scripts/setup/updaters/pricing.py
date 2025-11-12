@@ -7,7 +7,12 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.database import LLMModel, ModelEndpoint, ModelEndpointPricing, ModelPricing
+from ..models.database import (
+    LLMModel,
+    ModelEndpoint,
+    ModelEndpointPricing,
+    ModelPricing,
+)
 from ..models.openrouter import OpenRouterModelWithEndpoints
 from ..models.zdr import ZDREndpoint
 
@@ -24,8 +29,7 @@ async def update_existing_model_pricing(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -84,7 +88,7 @@ async def update_existing_model_pricing(
 async def update_existing_endpoint_pricing(
     session: AsyncSession,
     models: list[OpenRouterModelWithEndpoints],
-    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint]
+    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint],
 ) -> int:
     """Update existing endpoint pricing with new data from OpenRouter and ZDR"""
     updated_count = 0
@@ -93,8 +97,7 @@ async def update_existing_endpoint_pricing(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -111,7 +114,7 @@ async def update_existing_endpoint_pricing(
                     ModelEndpoint.model_id == model_id,
                     ModelEndpoint.name == ep.name,
                     ModelEndpoint.provider_name == ep.provider_name,
-                    ModelEndpoint.tag == ep.tag
+                    ModelEndpoint.tag == ep.tag,
                 )
             )
             endpoint_id_row = result.scalar_one_or_none()
@@ -123,7 +126,9 @@ async def update_existing_endpoint_pricing(
 
             # Check if pricing exists
             result = await session.execute(
-                select(ModelEndpointPricing).where(ModelEndpointPricing.endpoint_id == endpoint_id)
+                select(ModelEndpointPricing).where(
+                    ModelEndpointPricing.endpoint_id == endpoint_id
+                )
             )
             db_pricing = result.scalar_one_or_none()
 

@@ -23,8 +23,7 @@ async def update_existing_model_architecture(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -78,8 +77,7 @@ async def update_existing_architecture_modalities(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -102,8 +100,10 @@ async def update_existing_architecture_modalities(
 
         # Get existing modalities
         result = await session.execute(
-            select(ModelArchitectureModality.modality_type, ModelArchitectureModality.modality_value)
-            .where(ModelArchitectureModality.architecture_id == arch_id)
+            select(
+                ModelArchitectureModality.modality_type,
+                ModelArchitectureModality.modality_value,
+            ).where(ModelArchitectureModality.architecture_id == arch_id)
         )
         existing_modalities = {(row[0], row[1]) for row in result.all()}
 
@@ -113,7 +113,7 @@ async def update_existing_architecture_modalities(
                 new_modality = ModelArchitectureModality(
                     architecture_id=arch_id,
                     modality_type="input",
-                    modality_value=input_modality
+                    modality_value=input_modality,
                 )
                 session.add(new_modality)
                 updated_count += 1
@@ -123,7 +123,7 @@ async def update_existing_architecture_modalities(
                 new_modality = ModelArchitectureModality(
                     architecture_id=arch_id,
                     modality_type="output",
-                    modality_value=output_modality
+                    modality_value=output_modality,
                 )
                 session.add(new_modality)
                 updated_count += 1

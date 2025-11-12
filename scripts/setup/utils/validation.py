@@ -24,30 +24,25 @@ SUPPORTED_PARAMETERS = [
     "top_k",
     "min_p",
     "top_a",
-
     # Penalty parameters
     "frequency_penalty",
     "presence_penalty",
     "repetition_penalty",
-
     # Token and output parameters
     "top_logprobs",
     "seed",
     "max_tokens",
     "max_output_tokens",
     "max_completion_tokens",
-
     # Response format parameters
     "response_format",
     "structured_outputs",
-
     # Control parameters
     "stop",
     "stop_sequences",
     "tools",
     "tool_choice",
     "parallel_tool_calls",
-
     # Additional parameters
     "n",
     "candidate_count",
@@ -55,7 +50,6 @@ SUPPORTED_PARAMETERS = [
     "logprobs",
     "logit_bias",
     "web_search_options",
-
     # Reasoning parameters
     "include_reasoning",
     "reasoning",
@@ -73,8 +67,10 @@ DEFAULT_PARAMETERS = [
 # PYTHON EQUIVALENTS OF GO TYPES (for validation)
 # ============================================================================
 
+
 class SupportedParameter(str):
     """Python equivalent of Go SupportedParameter enum"""
+
     TEMPERATURE = "temperature"
     TOP_P = "top_p"
     TOP_K = "top_k"
@@ -107,6 +103,7 @@ class SupportedParameter(str):
 
 class DefaultParametersValues(BaseModel):
     """Python equivalent of Go DefaultParametersValues"""
+
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     top_k: Optional[float] = None
@@ -146,6 +143,10 @@ def validate_parameter_constants() -> None:
     # Ensure default parameters are a subset of supported parameters
     invalid_defaults = set(DEFAULT_PARAMETERS) - set(SUPPORTED_PARAMETERS)
     if invalid_defaults:
-        raise ValueError(f"DEFAULT_PARAMETERS contains parameters not in SUPPORTED_PARAMETERS: {invalid_defaults}")
+        raise ValueError(
+            f"DEFAULT_PARAMETERS contains parameters not in SUPPORTED_PARAMETERS: {invalid_defaults}"
+        )
 
-    logger.debug(f"✓ Parameter constants validated: {len(SUPPORTED_PARAMETERS)} supported, {len(DEFAULT_PARAMETERS)} default")
+    logger.debug(
+        f"✓ Parameter constants validated: {len(SUPPORTED_PARAMETERS)} supported, {len(DEFAULT_PARAMETERS)} default"
+    )
