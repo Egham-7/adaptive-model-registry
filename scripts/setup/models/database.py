@@ -2,13 +2,13 @@
 SQLAlchemy database models for the model registry.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -49,8 +49,8 @@ class LLMModel(Base):
     last_updated = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
 

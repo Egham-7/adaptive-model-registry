@@ -4,9 +4,9 @@ Caching utilities for OpenRouter API data.
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def get_zdr_cache_path() -> Path:
     return get_cache_dir() / "zdr_endpoints.json"
 
 
-def load_cached_models() -> Optional[list[dict[str, Any]]]:
+def load_cached_models() -> list[dict[str, Any]] | None:
     """Load cached OpenRouter models if fresh (less than 24 hours old)"""
     cache_path = get_models_cache_path()
 
@@ -54,7 +54,7 @@ def load_cached_models() -> Optional[list[dict[str, Any]]]:
 
     # Check if cache is fresh (less than 24 hours old)
     cache_age_hours = (
-        datetime.now(timezone.utc).timestamp() - cache_path.stat().st_mtime
+        datetime.now(UTC).timestamp() - cache_path.stat().st_mtime
     ) / 3600
 
     if cache_age_hours > 24:
@@ -62,7 +62,7 @@ def load_cached_models() -> Optional[list[dict[str, Any]]]:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path) as f:
             data = json.load(f)
             logger.info(
                 f"✓ Loaded {len(data)} models from cache (age: {cache_age_hours:.1f}h)"
@@ -85,7 +85,7 @@ def save_models_to_cache(models: list[dict[str, Any]]) -> None:
         logger.warning(f"Failed to save models cache: {e}")
 
 
-def load_cached_endpoints(model_id: str) -> Optional[dict[str, Any]]:
+def load_cached_endpoints(model_id: str) -> dict[str, Any] | None:
     """Load cached endpoints for a model if fresh (less than 24 hours old)"""
     cache_path = get_endpoint_cache_path(model_id)
 
@@ -94,14 +94,14 @@ def load_cached_endpoints(model_id: str) -> Optional[dict[str, Any]]:
 
     # Check if cache is fresh (less than 24 hours old)
     cache_age_hours = (
-        datetime.now(timezone.utc).timestamp() - cache_path.stat().st_mtime
+        datetime.now(UTC).timestamp() - cache_path.stat().st_mtime
     ) / 3600
 
     if cache_age_hours > 24:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path) as f:
             return json.load(f)
     except Exception as e:
         logger.debug(f"Failed to load endpoints cache for {model_id}: {e}")
@@ -119,7 +119,7 @@ def save_endpoints_to_cache(model_id: str, endpoints_data: dict[str, Any]) -> No
         logger.debug(f"Failed to save endpoints cache for {model_id}: {e}")
 
 
-def load_cached_zdr_endpoints() -> Optional[list[dict[str, Any]]]:
+def load_cached_zdr_endpoints() -> list[dict[str, Any]] | None:
     """Load cached ZDR endpoints if fresh (less than 24 hours old)"""
     cache_path = get_zdr_cache_path()
 
@@ -128,7 +128,7 @@ def load_cached_zdr_endpoints() -> Optional[list[dict[str, Any]]]:
 
     # Check if cache is fresh (less than 24 hours old)
     cache_age_hours = (
-        datetime.now(timezone.utc).timestamp() - cache_path.stat().st_mtime
+        datetime.now(UTC).timestamp() - cache_path.stat().st_mtime
     ) / 3600
 
     if cache_age_hours > 24:
@@ -138,7 +138,7 @@ def load_cached_zdr_endpoints() -> Optional[list[dict[str, Any]]]:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path) as f:
             data = json.load(f)
             logger.info(
                 f"✓ Loaded {len(data)} ZDR endpoints from cache (age: {cache_age_hours:.1f}h)"

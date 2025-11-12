@@ -9,12 +9,11 @@ import argparse
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from .fetchers.openrouter import fetch_all_endpoints_parallel, fetch_openrouter_models
 from .fetchers.zdr import fetch_zdr_endpoints
@@ -71,7 +70,7 @@ async def should_sync(
         return True  # Never synced before
 
     age_hours = (
-        datetime.now(timezone.utc) - last_sync.last_sync_at
+        datetime.now(UTC) - last_sync.last_sync_at
     ).total_seconds() / 3600
 
     if age_hours >= max_age_hours:
@@ -86,9 +85,9 @@ async def should_sync(
 
 async def main_async(
     db_url: str,
-    output_json: Optional[str] = None,
-    output_parquet: Optional[str] = None,
-    output_csv: Optional[str] = None,
+    output_json: str | None = None,
+    output_parquet: str | None = None,
+    output_csv: str | None = None,
     force_refresh: bool = False,
 ) -> None:
     """Main async pipeline using SQLAlchemy ORM"""
@@ -150,7 +149,7 @@ async def main_async(
             # Upsert OpenRouter models sync metadata
             sync_metadata = SyncMetadata(
                 sync_type="openrouter_models",
-                last_sync_at=datetime.now(timezone.utc),
+                last_sync_at=datetime.now(UTC),
                 models_count=len(models_with_endpoints),
             )
             await session.merge(sync_metadata)
@@ -158,7 +157,7 @@ async def main_async(
             # Upsert ZDR endpoints sync metadata
             zdr_sync_metadata = SyncMetadata(
                 sync_type="zdr_endpoints",
-                last_sync_at=datetime.now(timezone.utc),
+                last_sync_at=datetime.now(UTC),
                 zdr_endpoints_count=len(zdr_lookup),
             )
             await session.merge(zdr_sync_metadata)

@@ -3,7 +3,7 @@ Update functions for LLM models table.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,7 +48,7 @@ async def update_existing_llm_models(
             updated = True
 
         if updated:
-            db_model.last_updated = datetime.now(timezone.utc)  # type: ignore
+            db_model.last_updated = datetime.now(UTC)  # type: ignore
             updated_count += 1
 
     if updated_count > 0:

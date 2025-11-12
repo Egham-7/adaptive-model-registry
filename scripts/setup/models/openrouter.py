@@ -3,8 +3,8 @@ OpenRouter API models and parsing utilities.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -20,7 +20,7 @@ class Architecture(BaseModel):
     input_modalities: list[str]
     output_modalities: list[str]
     tokenizer: str
-    instruct_type: Optional[str] = None
+    instruct_type: str | None = None
 
 
 class Pricing(BaseModel):
@@ -37,8 +37,8 @@ class Pricing(BaseModel):
 class TopProvider(BaseModel):
     """Top provider metadata"""
 
-    context_length: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
+    context_length: int | None = None
+    max_completion_tokens: int | None = None
     is_moderated: bool = False
 
 
@@ -55,7 +55,7 @@ class OpenRouterModel(BaseModel):
     top_provider: TopProvider
     created: int
     supported_parameters: list[str]
-    default_parameters: Optional[dict[str, Any]] = None
+    default_parameters: dict[str, Any] | None = None
 
     @field_validator("supported_parameters")
     @classmethod
@@ -73,8 +73,8 @@ class OpenRouterModel(BaseModel):
     @field_validator("default_parameters")
     @classmethod
     def validate_default_parameters(
-        cls, v: Optional[dict[str, Any]]
-    ) -> Optional[dict[str, Any]]:
+        cls, v: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
         """Validate that default parameters only contain valid keys"""
         if v is None:
             return v
@@ -96,12 +96,12 @@ class Endpoint(BaseModel):
     pricing: dict[str, Any]
     provider_name: str
     tag: str
-    quantization: Optional[str] = None
-    max_completion_tokens: Optional[int] = None
-    max_prompt_tokens: Optional[int] = None
+    quantization: str | None = None
+    max_completion_tokens: int | None = None
+    max_prompt_tokens: int | None = None
     supported_parameters: list[str]
     status: int
-    uptime_last_30m: Optional[float] = None
+    uptime_last_30m: float | None = None
     supports_implicit_caching: bool
 
     @field_validator("supported_parameters")
@@ -135,7 +135,7 @@ class OpenRouterModelWithEndpoints(BaseModel):
     top_provider: TopProvider
     created: int
     supported_parameters: list[str]
-    default_parameters: Optional[dict[str, Any]] = None
+    default_parameters: dict[str, Any] | None = None
 
     # Providers from /api/v1/models/{id}/endpoints
     providers: list[Endpoint]
@@ -146,7 +146,7 @@ class OpenRouterModelWithEndpoints(BaseModel):
 
     # Metadata
     created_at: datetime
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @field_validator("supported_parameters")
     @classmethod
@@ -166,8 +166,8 @@ class OpenRouterModelWithEndpoints(BaseModel):
     @field_validator("default_parameters")
     @classmethod
     def validate_default_parameters(
-        cls, v: Optional[dict[str, Any]]
-    ) -> Optional[dict[str, Any]]:
+        cls, v: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
         """Validate that default parameters only contain valid keys"""
         if v is None:
             return v
@@ -182,7 +182,7 @@ class OpenRouterModelWithEndpoints(BaseModel):
         return v
 
 
-def parse_openrouter_model(raw_model: dict[str, Any]) -> Optional[OpenRouterModel]:
+def parse_openrouter_model(raw_model: dict[str, Any]) -> OpenRouterModel | None:
     """Parse raw model dict into OpenRouterModel, return None if invalid"""
     try:
         return OpenRouterModel(**raw_model)

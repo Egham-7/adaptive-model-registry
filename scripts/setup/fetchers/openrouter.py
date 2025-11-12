@@ -5,8 +5,8 @@ OpenRouter API fetching utilities.
 import asyncio
 import logging
 import sys
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 
@@ -74,7 +74,7 @@ async def fetch_openrouter_models(use_cache: bool = True) -> list[OpenRouterMode
             sys.exit(1)
 
 
-def parse_provider_model(model_id: str) -> tuple[Optional[str], Optional[str]]:
+def parse_provider_model(model_id: str) -> tuple[str | None, str | None]:
     """Parse provider/model_name from OpenRouter model ID"""
     if "/" not in model_id:
         return None, None
@@ -98,7 +98,7 @@ def normalize_model_name(model_name: str) -> str:
 
 async def fetch_model_endpoints(
     client: httpx.AsyncClient, model: OpenRouterModel, use_cache: bool = True
-) -> Optional[OpenRouterModelWithEndpoints]:
+) -> OpenRouterModelWithEndpoints | None:
     """
     Fetch endpoints for a model from OpenRouter API with caching.
     Returns None if endpoints cannot be fetched.
@@ -141,7 +141,7 @@ async def fetch_model_endpoints(
             return None
 
         # Convert timestamp
-        created_at = datetime.fromtimestamp(model.created, tz=timezone.utc)
+        created_at = datetime.fromtimestamp(model.created, tz=UTC)
 
         return OpenRouterModelWithEndpoints(
             openrouter_id=model.id,
