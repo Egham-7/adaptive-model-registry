@@ -111,8 +111,6 @@ jobs:
         run: cd scripts && uv run mypy .
       - name: Check black formatting
         run: cd scripts && uv run black --check .
-      - name: Check ruff formatting
-        run: cd scripts && uv run ruff format --check .
       - name: Test module imports
         run: cd scripts && uv run python -c "import setup; print('Setup module imports successfully')"
 
