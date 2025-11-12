@@ -3,7 +3,6 @@ Bulk insertion logic for new models.
 """
 
 import logging
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +33,7 @@ async def get_existing_models_from_db(session: AsyncSession) -> set[tuple[str, s
 async def bulk_insert_models(
     session: AsyncSession,
     models: list[OpenRouterModelWithEndpoints],
-    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint]
+    zdr_lookup: dict[tuple[str, str, str], ZDREndpoint],
 ) -> tuple[int, int]:
     """
     Bulk insert models using normalized schema with SQLAlchemy ORM.

@@ -1,0 +1,39 @@
+# Railway Build Optimization
+# Exclude files that aren't needed for the build
+
+# Documentation
+*.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# GitHub
+.github/
+
+# Development files
+.env*
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

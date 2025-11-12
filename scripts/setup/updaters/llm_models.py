@@ -24,8 +24,7 @@ async def update_existing_llm_models(
         # Check if model exists
         result = await session.execute(
             select(LLMModel).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         db_model = result.scalar_one_or_none()

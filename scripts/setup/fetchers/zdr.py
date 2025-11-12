@@ -9,12 +9,18 @@ from typing import Any
 import httpx
 
 from ..models.zdr import ZDREndpoint
-from .cache import OPENROUTER_API_BASE, load_cached_zdr_endpoints, save_zdr_endpoints_to_cache
+from .cache import (
+    OPENROUTER_API_BASE,
+    load_cached_zdr_endpoints,
+    save_zdr_endpoints_to_cache,
+)
 
 logger = logging.getLogger(__name__)
 
 
-async def fetch_zdr_endpoints(use_cache: bool = True) -> dict[tuple[str, str, str], ZDREndpoint]:
+async def fetch_zdr_endpoints(
+    use_cache: bool = True,
+) -> dict[tuple[str, str, str], ZDREndpoint]:
     """
     Fetch ZDR endpoints from OpenRouter API with caching.
     Returns a lookup dict keyed by (provider_name, model_name, tag).
@@ -58,7 +64,9 @@ async def fetch_zdr_endpoints(use_cache: bool = True) -> dict[tuple[str, str, st
                 except Exception as e:
                     logger.warning(f"Failed to parse ZDR endpoint {raw_endpoint}: {e}")
 
-            logger.info(f"✓ Fetched and parsed {len(zdr_lookup)} ZDR endpoints from OpenRouter")
+            logger.info(
+                f"✓ Fetched and parsed {len(zdr_lookup)} ZDR endpoints from OpenRouter"
+            )
             return zdr_lookup
 
         except httpx.HTTPError as e:

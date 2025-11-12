@@ -30,10 +30,19 @@ from .updaters.parameters import (
     update_existing_default_parameters,
     update_existing_supported_parameters,
 )
-from .updaters.pricing import update_existing_endpoint_pricing, update_existing_model_pricing
+from .updaters.pricing import (
+    update_existing_endpoint_pricing,
+    update_existing_model_pricing,
+)
 from .updaters.providers import update_existing_top_provider
 from .utils.exports import save_to_polars
 from .utils.validation import validate_parameter_constants
+
+# Re-export key types for package users
+__all__ = [
+    "OpenRouterModelWithEndpoints",
+    "ZDREndpoint",
+]
 
 # Configure logging
 logging.basicConfig(
@@ -123,14 +132,30 @@ async def main_async(
     async with async_session() as session:
         # Update existing models in all tables
         updated_llm = await update_existing_llm_models(session, models_with_endpoints)
-        updated_pricing = await update_existing_model_pricing(session, models_with_endpoints)
-        updated_architecture = await update_existing_model_architecture(session, models_with_endpoints)
-        updated_modalities = await update_existing_architecture_modalities(session, models_with_endpoints)
-        updated_top_provider = await update_existing_top_provider(session, models_with_endpoints)
-        updated_endpoints = await update_existing_endpoints(session, models_with_endpoints, zdr_lookup)
-        updated_endpoint_pricing = await update_existing_endpoint_pricing(session, models_with_endpoints, zdr_lookup)
-        updated_supported_params = await update_existing_supported_parameters(session, models_with_endpoints)
-        updated_default_params = await update_existing_default_parameters(session, models_with_endpoints)
+        updated_pricing = await update_existing_model_pricing(
+            session, models_with_endpoints
+        )
+        updated_architecture = await update_existing_model_architecture(
+            session, models_with_endpoints
+        )
+        updated_modalities = await update_existing_architecture_modalities(
+            session, models_with_endpoints
+        )
+        updated_top_provider = await update_existing_top_provider(
+            session, models_with_endpoints
+        )
+        updated_endpoints = await update_existing_endpoints(
+            session, models_with_endpoints, zdr_lookup
+        )
+        updated_endpoint_pricing = await update_existing_endpoint_pricing(
+            session, models_with_endpoints, zdr_lookup
+        )
+        updated_supported_params = await update_existing_supported_parameters(
+            session, models_with_endpoints
+        )
+        updated_default_params = await update_existing_default_parameters(
+            session, models_with_endpoints
+        )
 
     logger.info("✓ Updates complete:")
     logger.info(f"  • LLM models: {updated_llm}")
@@ -146,7 +171,9 @@ async def main_async(
     # Step 6: Insert new models
     logger.info("Inserting new models to database...")
     async with async_session() as session:
-        inserted, skipped = await bulk_insert_models(session, models_with_endpoints, zdr_lookup)
+        inserted, skipped = await bulk_insert_models(
+            session, models_with_endpoints, zdr_lookup
+        )
 
     logger.info("✓ Database sync complete:")
     logger.info(f"  • Inserted: {inserted} new models")

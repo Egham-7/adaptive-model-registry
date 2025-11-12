@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.database import LLMModel, ModelDefaultParameters, ModelSupportedParameter
 from ..models.openrouter import OpenRouterModelWithEndpoints
-from ..utils.validation import DefaultParametersValues, SupportedParameter, is_valid_default_parameter, is_valid_supported_parameter
+from ..utils.validation import (
+    DefaultParametersValues,
+    SupportedParameter,
+    is_valid_default_parameter,
+    is_valid_supported_parameter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +29,7 @@ async def update_existing_supported_parameters(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -37,8 +41,9 @@ async def update_existing_supported_parameters(
 
         # Get existing supported parameters
         result = await session.execute(
-            select(ModelSupportedParameter.parameter_name)
-            .where(ModelSupportedParameter.model_id == model_id)
+            select(ModelSupportedParameter.parameter_name).where(
+                ModelSupportedParameter.model_id == model_id
+            )
         )
         existing_params = {row[0] for row in result.all()}
 
@@ -50,8 +55,7 @@ async def update_existing_supported_parameters(
                     continue
 
                 new_param = ModelSupportedParameter(
-                    model_id=model_id,
-                    parameter_name=SupportedParameter(param)
+                    model_id=model_id, parameter_name=SupportedParameter(param)
                 )
                 session.add(new_param)
                 updated_count += 1
@@ -73,8 +77,7 @@ async def update_existing_default_parameters(
         # Get model ID
         result = await session.execute(
             select(LLMModel.id).where(
-                LLMModel.author == m.author,
-                LLMModel.model_name == m.model_name
+                LLMModel.author == m.author, LLMModel.model_name == m.model_name
             )
         )
         model_id_row = result.scalar_one_or_none()
@@ -86,7 +89,9 @@ async def update_existing_default_parameters(
 
         # Check if default parameters exist
         result = await session.execute(
-            select(ModelDefaultParameters).where(ModelDefaultParameters.model_id == model_id)
+            select(ModelDefaultParameters).where(
+                ModelDefaultParameters.model_id == model_id
+            )
         )
         db_defaults = result.scalar_one_or_none()
 
@@ -97,7 +102,8 @@ async def update_existing_default_parameters(
         if m.default_parameters:
             # Filter to only valid default parameters
             valid_defaults = {
-                k: v for k, v in m.default_parameters.items()
+                k: v
+                for k, v in m.default_parameters.items()
                 if is_valid_default_parameter(k)
             }
 
@@ -108,7 +114,7 @@ async def update_existing_default_parameters(
 
                 # Create new DefaultParametersValues
                 new_defaults = DefaultParametersValues(**merged_params)
-                db_defaults.parameters = new_defaults  # type: ignore
+                db_defaults.parameters = new_defaults.model_dump(exclude_none=True)  # type: ignore
                 updated_count += 1
 
     if updated_count > 0:
