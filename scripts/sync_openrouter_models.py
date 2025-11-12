@@ -24,7 +24,7 @@ from typing import Any, Optional
 
 import httpx
 import polars as pl
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import (
     JSON,
     Column,
@@ -44,6 +44,79 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# PARAMETER TYPE CONSTANTS (MUST MATCH Go CODE IN internal/models/parameters.go)
+# ============================================================================
+# These constants must be kept in sync with the Go parameter definitions
+# in adaptive-model-registry/internal/models/parameters.go and
+# adaptive-proxy/internal/models/parameters.go
+
+# Supported parameter names (all parameters a model can support)
+SUPPORTED_PARAMETERS = [
+    # Sampling parameters
+    "temperature",
+    "top_p",
+    "top_k",
+    "min_p",
+    "top_a",
+
+    # Penalty parameters
+    "frequency_penalty",
+
+    # Token and output parameters
+    "top_logprobs",
+    "seed",
+
+    # Response format parameters
+    "response_format",
+    "structured_outputs",
+
+    # Control parameters
+    "stop",
+    "tools",
+    "tool_choice",
+    "parallel_tool_calls",
+
+    # Reasoning parameters
+    "include_reasoning",
+    "reasoning",
+]
+
+# Default parameter names (subset that can have default values)
+DEFAULT_PARAMETERS = [
+    "temperature",
+    "top_p",
+    "frequency_penalty",
+]
+
+
+def is_valid_supported_parameter(param: str) -> bool:
+    """Check if a parameter name is valid for supported parameters"""
+    return param in SUPPORTED_PARAMETERS
+
+
+def is_valid_default_parameter(param: str) -> bool:
+    """Check if a parameter name is valid for default parameters"""
+    return param in DEFAULT_PARAMETERS
+
+
+def validate_parameter_constants() -> None:
+    """Validate that parameter constants are properly defined"""
+    # Ensure no duplicates
+    if len(SUPPORTED_PARAMETERS) != len(set(SUPPORTED_PARAMETERS)):
+        raise ValueError("SUPPORTED_PARAMETERS contains duplicates")
+
+    if len(DEFAULT_PARAMETERS) != len(set(DEFAULT_PARAMETERS)):
+        raise ValueError("DEFAULT_PARAMETERS contains duplicates")
+
+    # Ensure default parameters are a subset of supported parameters
+    invalid_defaults = set(DEFAULT_PARAMETERS) - set(SUPPORTED_PARAMETERS)
+    if invalid_defaults:
+        raise ValueError(f"DEFAULT_PARAMETERS contains parameters not in SUPPORTED_PARAMETERS: {invalid_defaults}")
+
+    logger.debug(f"✓ Parameter constants validated: {len(SUPPORTED_PARAMETERS)} supported, {len(DEFAULT_PARAMETERS)} default")
 
 
 # SQLAlchemy Base
@@ -299,6 +372,31 @@ class OpenRouterModel(BaseModel):
     supported_parameters: list[str]
     default_parameters: Optional[dict[str, Any]] = None
 
+    @field_validator("supported_parameters")
+    @classmethod
+    def validate_supported_parameters(cls, v: list[str]) -> list[str]:
+        """Validate that all supported parameters are valid"""
+        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        if invalid_params:
+            logger.warning(f"Found invalid supported parameters: {invalid_params}")
+            # Filter out invalid parameters instead of failing
+            v = [param for param in v if is_valid_supported_parameter(param)]
+        return v
+
+    @field_validator("default_parameters")
+    @classmethod
+    def validate_default_parameters(cls, v: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+        """Validate that default parameters only contain valid keys"""
+        if v is None:
+            return v
+
+        invalid_keys = [key for key in v.keys() if not is_valid_default_parameter(key)]
+        if invalid_keys:
+            logger.warning(f"Found invalid default parameter keys: {invalid_keys}")
+            # Remove invalid keys instead of failing
+            v = {k: v[k] for k in v.keys() if is_valid_default_parameter(k)}
+        return v
+
 
 class Endpoint(BaseModel):
     """OpenRouter endpoint information"""
@@ -316,6 +414,17 @@ class Endpoint(BaseModel):
     status: int
     uptime_last_30m: Optional[float] = None
     supports_implicit_caching: bool
+
+    @field_validator("supported_parameters")
+    @classmethod
+    def validate_supported_parameters(cls, v: list[str]) -> list[str]:
+        """Validate that all supported parameters are valid"""
+        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        if invalid_params:
+            logger.warning(f"Found invalid supported parameters in endpoint: {invalid_params}")
+            # Filter out invalid parameters instead of failing
+            v = [param for param in v if is_valid_supported_parameter(param)]
+        return v
 
 
 class OpenRouterModelWithEndpoints(BaseModel):
@@ -345,6 +454,31 @@ class OpenRouterModelWithEndpoints(BaseModel):
     # Metadata
     created_at: datetime
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("supported_parameters")
+    @classmethod
+    def validate_supported_parameters(cls, v: list[str]) -> list[str]:
+        """Validate that all supported parameters are valid"""
+        invalid_params = [param for param in v if not is_valid_supported_parameter(param)]
+        if invalid_params:
+            logger.warning(f"Found invalid supported parameters in {cls.__name__}: {invalid_params}")
+            # Filter out invalid parameters instead of failing
+            v = [param for param in v if is_valid_supported_parameter(param)]
+        return v
+
+    @field_validator("default_parameters")
+    @classmethod
+    def validate_default_parameters(cls, v: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+        """Validate that default parameters only contain valid keys"""
+        if v is None:
+            return v
+
+        invalid_keys = [key for key in v.keys() if not is_valid_default_parameter(key)]
+        if invalid_keys:
+            logger.warning(f"Found invalid default parameter keys in {cls.__name__}: {invalid_keys}")
+            # Remove invalid keys instead of failing
+            v = {k: v[k] for k in v.keys() if is_valid_default_parameter(k)}
+        return v
 
 
 def parse_openrouter_model(raw_model: dict[str, Any]) -> Optional[OpenRouterModel]:
@@ -840,6 +974,9 @@ async def main_async(
     no_cache: bool = False,
 ) -> None:
     """Main async pipeline using SQLAlchemy ORM"""
+    # Validate parameter constants on startup
+    validate_parameter_constants()
+
     logger.info("🚀 Starting OpenRouter model sync pipeline")
 
     # Step 1: Fetch models from OpenRouter (with caching)

@@ -101,9 +101,9 @@ func (ModelEndpointPricing) TableName() string {
 
 // ModelSupportedParameter represents supported parameters (many-to-many with Model)
 type ModelSupportedParameter struct {
-	ID            int64  `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
-	ModelID       int64  `json:"model_id,omitzero" gorm:"column:model_id;index"`
-	ParameterName string `json:"parameter_name" gorm:"column:parameter_name"`
+	ID            int64              `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
+	ModelID       int64              `json:"model_id,omitzero" gorm:"column:model_id;index"`
+	ParameterName SupportedParameter `json:"parameter_name" gorm:"column:parameter_name"`
 }
 
 func (ModelSupportedParameter) TableName() string {
@@ -112,9 +112,36 @@ func (ModelSupportedParameter) TableName() string {
 
 // ModelDefaultParameters represents default parameters (one-to-one with Model, stored as JSON for flexibility)
 type ModelDefaultParameters struct {
-	ID         int64          `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
-	ModelID    int64          `json:"model_id,omitzero" gorm:"column:model_id;uniqueIndex"`
-	Parameters map[string]any `json:"parameters" gorm:"column:parameters;type:jsonb;serializer:json"`
+	ID         int64                   `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
+	ModelID    int64                   `json:"model_id,omitzero" gorm:"column:model_id;uniqueIndex"`
+	Parameters DefaultParametersValues `json:"parameters" gorm:"column:parameters;type:jsonb;serializer:json"`
+}
+
+// DefaultParametersValues contains the strongly typed default parameter values
+// This includes all parameters that can potentially have default values
+type DefaultParametersValues struct {
+	// Sampling parameters
+	Temperature *float64 `json:"temperature,omitzero"`
+	TopP        *float64 `json:"top_p,omitzero"`
+	TopK        *float64 `json:"top_k,omitzero"`
+	MinP        *float64 `json:"min_p,omitzero"`
+	TopA        *float64 `json:"top_a,omitzero"`
+
+	// Penalty parameters
+	FrequencyPenalty *float64 `json:"frequency_penalty,omitzero"`
+
+	// Token and output parameters
+	MaxTokens           *float64 `json:"max_tokens,omitzero"`
+	MaxCompletionTokens *float64 `json:"max_completion_tokens,omitzero"`
+	TopLogprobs         *float64 `json:"top_logprobs,omitzero"`
+	Seed                *float64 `json:"seed,omitzero"`
+
+	// Control parameters
+	N                 *float64  `json:"n,omitzero"`
+	StopSequences     *[]string `json:"stop_sequences,omitzero"`
+	ParallelToolCalls *bool     `json:"parallel_tool_calls,omitzero"`
+	Store             *bool     `json:"store,omitzero"`
+	Logprobs          *bool     `json:"logprobs,omitzero"`
 }
 
 func (ModelDefaultParameters) TableName() string {
