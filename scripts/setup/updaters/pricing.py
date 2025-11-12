@@ -40,10 +40,9 @@ async def update_existing_model_pricing(
         model_id = model_id_row
 
         # Check if pricing exists
-        result = await session.execute(
+        db_pricing = await session.scalar(
             select(ModelPricing).where(ModelPricing.model_id == model_id)
         )
-        db_pricing = result.scalar_one_or_none()
 
         if db_pricing is None:
             continue  # Skip if pricing doesn't exist
@@ -128,19 +127,18 @@ async def update_existing_endpoint_pricing(
             endpoint_id = endpoint_id_row
 
             # Check if pricing exists
-            result = await session.execute(
+            db_pricing = await session.scalar(
                 select(ModelEndpointPricing).where(
                     ModelEndpointPricing.endpoint_id == endpoint_id
                 )
             )
-            db_pricing = result.scalar_one_or_none()
 
             if db_pricing is None:
                 continue  # Skip if pricing doesn't exist
 
             # Check if this endpoint has ZDR pricing (preferred)
             zdr_key = (ep.provider_name, ep.model_name, ep.tag)
-            zdr_endpoint = zdr_lookup.get(zdr_key)
+            zdr_endpoint: ZDREndpoint | None = zdr_lookup.get(zdr_key)
 
             updated = False
 
