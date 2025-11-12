@@ -136,7 +136,7 @@ async def bulk_insert_models(
             # 8. Insert providers
             for ep in m.providers:
                 # Check if endpoint already exists (handle OpenRouter API duplicates)
-                existing_endpoint = await session.execute(
+                existing_endpoint_result = await session.execute(
                     select(ModelEndpoint).where(
                         ModelEndpoint.model_id == model_id,
                         ModelEndpoint.name == ep.name,
@@ -144,7 +144,7 @@ async def bulk_insert_models(
                         ModelEndpoint.tag == ep.tag,
                     )
                 )
-                existing_endpoint = existing_endpoint.scalar_one_or_none()
+                existing_endpoint = existing_endpoint_result.scalar_one_or_none()
 
                 if existing_endpoint:
                     endpoint = existing_endpoint

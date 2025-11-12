@@ -5,13 +5,14 @@ SQLAlchemy database models for the model registry.
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    JSON,
     Column,
     DateTime,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -224,3 +225,21 @@ class ModelDefaultParameters(Base):
     )
 
     parameters = Column(JSON)
+
+
+class SyncMetadata(Base):
+    """Tracks synchronization metadata to avoid unnecessary API calls"""
+
+    __tablename__ = "sync_metadata"
+
+    id = Column(Integer, primary_key=True)
+    sync_type = Column(
+        String, nullable=False, index=True
+    )  # "openrouter_models", "zdr_endpoints"
+    last_sync_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    models_count = Column(Integer)
+    zdr_endpoints_count = Column(Integer)
+
+    __table_args__ = (UniqueConstraint("sync_type"),)

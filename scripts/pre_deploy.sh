@@ -42,11 +42,12 @@ echo "📦 Syncing Python dependencies..."
 uv sync --frozen
 echo "✓ Dependencies synced"
 
-# Run the database setup
-echo ""
-echo "🔄 Syncing OpenRouter models to database..."
-echo "════════════════════════════════════════════════════════"
-uv run python -m setup --db-url "$DATABASE_URL" --no-cache
+ # Run the database setup
+ echo ""
+ echo "🔄 Syncing OpenRouter models to database..."
+ echo "════════════════════════════════════════════════════════"
+ FORCE_FLAG=${FORCE_REFRESH:+--force-refresh}
+ uv run python -m setup --db-url "$DATABASE_URL" $FORCE_FLAG
 
 # Check if setup was successful
 if [ $? -eq 0 ]; then
