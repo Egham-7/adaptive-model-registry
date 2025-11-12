@@ -23,7 +23,7 @@ func Register(app *fiber.App, deps Deps) {
 	health := NewHealthHandler(deps.DB)
 
 	app.Get("/", Root)
-	app.Get("/healthz", health.Check)
+	app.Get("/health", health.Check)
 	app.Get("/models", models.List)
 	app.Get("/models/:provider/:name", models.GetByProviderAndName)
 	app.Post("/models", models.Upsert)
