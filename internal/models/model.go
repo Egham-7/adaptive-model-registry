@@ -76,6 +76,7 @@ type ModelEndpoint struct {
 	Status                  int    `json:"status" gorm:"column:status"`
 	UptimeLast30m           string `json:"uptime_last_30m,omitzero" gorm:"column:uptime_last_30m"`
 	SupportsImplicitCaching string `json:"supports_implicit_caching,omitzero" gorm:"column:supports_implicit_caching"` // stored as string "true"/"false"
+	IsZDR                   string `json:"is_zdr,omitzero" gorm:"column:is_zdr"`                                       // stored as string "true"/"false"
 
 	// Relationships
 	Pricing *ModelEndpointPricing `json:"pricing,omitzero" gorm:"foreignKey:EndpointID"`
@@ -87,12 +88,18 @@ func (ModelEndpoint) TableName() string {
 
 // ModelEndpointPricing represents endpoint-specific pricing
 type ModelEndpointPricing struct {
-	ID             int64  `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
-	EndpointID     int64  `json:"endpoint_id,omitzero" gorm:"column:endpoint_id;uniqueIndex"`
-	PromptCost     string `json:"prompt_cost,omitzero" gorm:"column:prompt_cost"`
-	CompletionCost string `json:"completion_cost,omitzero" gorm:"column:completion_cost"`
-	RequestCost    string `json:"request_cost,omitzero" gorm:"column:request_cost"`
-	ImageCost      string `json:"image_cost,omitzero" gorm:"column:image_cost"`
+	ID                  int64  `json:"id,omitzero" gorm:"primaryKey;autoIncrement"`
+	EndpointID          int64  `json:"endpoint_id,omitzero" gorm:"column:endpoint_id;uniqueIndex"`
+	PromptCost          string `json:"prompt_cost,omitzero" gorm:"column:prompt_cost"`
+	CompletionCost      string `json:"completion_cost,omitzero" gorm:"column:completion_cost"`
+	RequestCost         string `json:"request_cost,omitzero" gorm:"column:request_cost"`
+	ImageCost           string `json:"image_cost,omitzero" gorm:"column:image_cost"`
+	ImageOutputCost     string `json:"image_output_cost,omitzero" gorm:"column:image_output_cost"`
+	AudioCost           string `json:"audio_cost,omitzero" gorm:"column:audio_cost"`
+	InputAudioCacheCost string `json:"input_audio_cache_cost,omitzero" gorm:"column:input_audio_cache_cost"`
+	InputCacheReadCost  string `json:"input_cache_read_cost,omitzero" gorm:"column:input_cache_read_cost"`
+	InputCacheWriteCost string `json:"input_cache_write_cost,omitzero" gorm:"column:input_cache_write_cost"`
+	Discount            string `json:"discount,omitzero" gorm:"column:discount"`
 }
 
 func (ModelEndpointPricing) TableName() string {
