@@ -19,8 +19,19 @@ cd scripts
 # Check if uv is installed, if not install it
 if ! command -v uv &> /dev/null; then
     echo "📦 Installing uv package manager..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.cargo/bin:$PATH"
+
+    # Try wget first, then curl, then pip
+    if command -v wget &> /dev/null; then
+        wget -qO- https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$PATH"
+    elif command -v curl &> /dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$PATH"
+    else
+        echo "📦 Using pip to install uv..."
+        pip install uv
+    fi
+
     echo "✓ uv installed successfully"
 else
     echo "✓ uv already installed"
