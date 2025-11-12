@@ -2,7 +2,6 @@
 ZDR (Zero Downtime Routing) endpoint models.
 """
 
-
 from pydantic import BaseModel, field_validator
 
 

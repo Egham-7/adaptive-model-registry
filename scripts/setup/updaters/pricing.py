@@ -71,7 +71,10 @@ async def update_existing_model_pricing(
             db_pricing.web_search_cost = m.pricing.web_search  # type: ignore
             updated = True
 
-        if m.pricing.internal_reasoning and (not db_pricing.internal_reasoning_cost or db_pricing.internal_reasoning_cost == "0"):  # type: ignore
+        if m.pricing.internal_reasoning and (
+            not db_pricing.internal_reasoning_cost
+            or db_pricing.internal_reasoning_cost == "0"
+        ):  # type: ignore
             db_pricing.internal_reasoning_cost = m.pricing.internal_reasoning  # type: ignore
             updated = True
 
@@ -147,11 +150,15 @@ async def update_existing_endpoint_pricing(
                     db_pricing.prompt_cost = zdr_endpoint.pricing.prompt_cost  # type: ignore
                     updated = True
 
-                if zdr_endpoint.pricing.completion_cost and (not db_pricing.completion_cost or db_pricing.completion_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.completion_cost and (
+                    not db_pricing.completion_cost or db_pricing.completion_cost == "0"
+                ):  # type: ignore
                     db_pricing.completion_cost = zdr_endpoint.pricing.completion_cost  # type: ignore
                     updated = True
 
-                if zdr_endpoint.pricing.request_cost and (not db_pricing.request_cost or db_pricing.request_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.request_cost and (
+                    not db_pricing.request_cost or db_pricing.request_cost == "0"
+                ):  # type: ignore
                     db_pricing.request_cost = zdr_endpoint.pricing.request_cost  # type: ignore
                     updated = True
 
@@ -160,7 +167,10 @@ async def update_existing_endpoint_pricing(
                     updated = True
 
                 # New ZDR fields
-                if zdr_endpoint.pricing.image_output_cost and (not db_pricing.image_output_cost or db_pricing.image_output_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.image_output_cost and (
+                    not db_pricing.image_output_cost
+                    or db_pricing.image_output_cost == "0"
+                ):  # type: ignore
                     db_pricing.image_output_cost = zdr_endpoint.pricing.image_output_cost  # type: ignore
                     updated = True
 
@@ -168,15 +178,24 @@ async def update_existing_endpoint_pricing(
                     db_pricing.audio_cost = zdr_endpoint.pricing.audio_cost  # type: ignore
                     updated = True
 
-                if zdr_endpoint.pricing.input_audio_cache_cost and (not db_pricing.input_audio_cache_cost or db_pricing.input_audio_cache_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.input_audio_cache_cost and (
+                    not db_pricing.input_audio_cache_cost
+                    or db_pricing.input_audio_cache_cost == "0"
+                ):  # type: ignore
                     db_pricing.input_audio_cache_cost = zdr_endpoint.pricing.input_audio_cache_cost  # type: ignore
                     updated = True
 
-                if zdr_endpoint.pricing.input_cache_read_cost and (not db_pricing.input_cache_read_cost or db_pricing.input_cache_read_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.input_cache_read_cost and (
+                    not db_pricing.input_cache_read_cost
+                    or db_pricing.input_cache_read_cost == "0"
+                ):  # type: ignore
                     db_pricing.input_cache_read_cost = zdr_endpoint.pricing.input_cache_read_cost  # type: ignore
                     updated = True
 
-                if zdr_endpoint.pricing.input_cache_write_cost and (not db_pricing.input_cache_write_cost or db_pricing.input_cache_write_cost == "0"):  # type: ignore
+                if zdr_endpoint.pricing.input_cache_write_cost and (
+                    not db_pricing.input_cache_write_cost
+                    or db_pricing.input_cache_write_cost == "0"
+                ):  # type: ignore
                     db_pricing.input_cache_write_cost = zdr_endpoint.pricing.input_cache_write_cost  # type: ignore
                     updated = True
 
@@ -189,7 +208,9 @@ async def update_existing_endpoint_pricing(
                     db_pricing.prompt_cost = str(ep.pricing["prompt_cost"])  # type: ignore
                     updated = True
 
-                if ep.pricing.get("completion_cost") and (not db_pricing.completion_cost or db_pricing.completion_cost == "0"):  # type: ignore
+                if ep.pricing.get("completion_cost") and (
+                    not db_pricing.completion_cost or db_pricing.completion_cost == "0"
+                ):  # type: ignore
                     db_pricing.completion_cost = str(ep.pricing["completion_cost"])  # type: ignore
                     updated = True
 

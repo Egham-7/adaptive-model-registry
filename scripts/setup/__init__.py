@@ -69,9 +69,7 @@ async def should_sync(
         logger.info(f"Never synced {sync_type} before, will sync now")
         return True  # Never synced before
 
-    age_hours = (
-        datetime.now(UTC) - last_sync.last_sync_at
-    ).total_seconds() / 3600
+    age_hours = (datetime.now(UTC) - last_sync.last_sync_at).total_seconds() / 3600
 
     if age_hours >= max_age_hours:
         logger.info(
@@ -133,7 +131,8 @@ async def main_async(
         # Step 2: Fetch endpoints for all models in parallel
         logger.info(f"Fetching endpoints for {len(raw_models)} models in parallel...")
         models_with_endpoints = await fetch_all_endpoints_parallel(
-            raw_models, use_cache=False  # Always fresh for sync
+            raw_models,
+            use_cache=False,  # Always fresh for sync
         )
         logger.info(
             f"✓ Fetched endpoints for {len(models_with_endpoints)} models (from {len(raw_models)} total)"

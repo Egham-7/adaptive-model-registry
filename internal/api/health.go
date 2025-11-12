@@ -30,5 +30,12 @@ func (h *HealthHandler) Check(c *fiber.Ctx) error {
 		return errorResponse(c, http.StatusServiceUnavailable, err.Error())
 	}
 
-	return c.SendStatus(http.StatusOK)
+	return c.JSON(fiber.Map{
+		"status":  "healthy",
+		"service": "adaptive-model-registry",
+		"database": fiber.Map{
+			"status": "connected",
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
 }
