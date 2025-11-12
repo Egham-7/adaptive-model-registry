@@ -1,0 +1,1 @@
+# Database update functions for model registry setup
